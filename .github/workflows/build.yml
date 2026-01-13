@@ -28,8 +28,8 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: LandClaims
-        path: target/LandClaims-*.jar
+        name: EasyClaims
+        path: target/EasyClaims-*.jar
 
   release:
     needs: build
@@ -42,7 +42,7 @@ jobs:
     - name: Download artifact
       uses: actions/download-artifact@v4
       with:
-        name: LandClaims
+        name: EasyClaims
         path: ./dist
 
     - name: Get short SHA
@@ -53,62 +53,53 @@ jobs:
       id: date
       run: echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-    - name: Rename JAR
-      run: mv dist/LandClaims-*.jar dist/LandClaims.jar
+    - name: Set version
+      id: version
+      run: echo "VERSION=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
 
-    - name: Delete existing latest release
-      run: gh release delete latest --yes || true
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Rename JAR
+      run: mv dist/EasyClaims-*.jar dist/EasyClaims-${{ steps.version.outputs.VERSION }}.jar
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: latest
-        name: Latest Build (${{ steps.date.outputs.DATE }})
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        name: EasyClaims ${{ steps.version.outputs.VERSION }}
         body: |
-          ## LandClaims - Latest Build
+          ## EasyClaims ${{ steps.version.outputs.VERSION }}
 
-          **Commit:** ${{ github.sha }}
+          **Commit:** `${{ steps.sha.outputs.SHORT_SHA }}`
           **Date:** ${{ steps.date.outputs.DATE }}
 
           ### Installation
-          1. Download `LandClaims.jar`
+          1. Download `EasyClaims-${{ steps.version.outputs.VERSION }}.jar`
           2. Place in your Hytale server's `mods/` folder
           3. Restart the server
 
           ### Features
-          - Chunk-based land claiming
+          - Chunk-based land claiming with visual map integration
           - Playtime-based claim limits (more playtime = more claims)
-          - Trust system for sharing claims
-          - Full protection for claimed areas
-
-          ### Default Config
-          - Starting chunks: 4
-          - Chunks per hour: 2
-          - Max claims: 50
+          - Trust system with 4 permission levels
+          - Full block protection for claimed areas
 
           ### Commands
           | Command | Description |
           |---------|-------------|
-          | `/claim` | Claim the chunk you're standing in |
-          | `/unclaim` | Unclaim the chunk you're standing in |
-          | `/claims` | List all your claims |
-          | `/trust <uuid>` | Trust a player in all your claims |
-          | `/untrust <uuid>` | Remove trust from a player |
-          | `/playtime` | Show your playtime and available claims |
-          | `/claimhelp` | Show help |
+          | `/easyclaims claim` | Claim the chunk you're standing in |
+          | `/easyclaims unclaim` | Unclaim current chunk |
+          | `/easyclaims list` | List all your claims |
+          | `/easyclaims trust <player> [level]` | Trust a player |
+          | `/easyclaims untrust <player>` | Remove trust |
+          | `/easyclaims trustlist` | List trusted players |
+          | `/easyclaims playtime` | Show your stats |
+          | `/easyclaims admin config` | Show settings (admin) |
+          | `/easyclaims admin set <key> <value>` | Change settings (admin) |
 
-          ### Setup Permissions
+          ### Permissions
           ```
-          perm group add Adventure landclaims.claim
-          perm group add Adventure landclaims.unclaim
-          perm group add Adventure landclaims.list
-          perm group add Adventure landclaims.trust
-          perm group add Adventure landclaims.untrust
-          perm group add Adventure landclaims.playtime
-          perm group add Adventure landclaims.help
+          perm group add Adventure easyclaims.use
+          perm group add admin easyclaims.admin
           ```
-        files: dist/LandClaims.jar
+        files: dist/EasyClaims-${{ steps.version.outputs.VERSION }}.jar
         prerelease: false
         make_latest: true
