@@ -4,16 +4,27 @@ import com.hypixel.hytale.component.ArchetypeChunk;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.component.dependency.Dependency;
+import com.hypixel.hytale.component.dependency.RootDependency;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EntityEventSystem;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.landclaims.data.TrustLevel;
 import com.landclaims.managers.ClaimManager;
+import com.landclaims.util.Messages;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * ECS System that intercepts block break events to protect claimed areas.
@@ -23,47 +34,62 @@ public class BlockBreakProtectionSystem extends EntityEventSystem<EntityStore, B
     private final ClaimManager claimManager;
     private final HytaleLogger logger;
 
+    // Rate limit messages - don't spam players
+    private static final Map<UUID, Long> lastMessageTime = new ConcurrentHashMap<>();
+    private static final long MESSAGE_COOLDOWN_MS = 2000; // 2 seconds
+
     public BlockBreakProtectionSystem(ClaimManager claimManager, HytaleLogger logger) {
         super(BreakBlockEvent.class);
         this.claimManager = claimManager;
         this.logger = logger;
     }
 
+    private boolean canSendMessage(UUID playerId) {
+        long now = System.currentTimeMillis();
+        Long lastTime = lastMessageTime.get(playerId);
+        if (lastTime == null || now - lastTime > MESSAGE_COOLDOWN_MS) {
+            lastMessageTime.put(playerId, now);
+            return true;
+        }
+        return false;
+    }
+
+    @Nullable
     @Override
     public Query<EntityStore> getQuery() {
-        return Query.any();
+        return PlayerRef.getComponentType();
+    }
+
+    @Nonnull
+    @Override
+    public Set<Dependency<EntityStore>> getDependencies() {
+        return Collections.singleton(RootDependency.first());
     }
 
     @Override
-    public void handle(int entityIndex, ArchetypeChunk<EntityStore> chunk, Store<EntityStore> store,
-                       CommandBuffer<EntityStore> commandBuffer, BreakBlockEvent event) {
+    public void handle(int entityIndex, @Nonnull ArchetypeChunk<EntityStore> chunk, @Nonnull Store<EntityStore> store,
+                       @Nonnull CommandBuffer<EntityStore> commandBuffer, @Nonnull BreakBlockEvent event) {
         Vector3i targetBlock = event.getTargetBlock();
         if (targetBlock == null) return;
 
-        logger.atInfo().log("BreakBlockEvent fired at %s", targetBlock);
-
         // Get the entity that triggered this event
         Ref<EntityStore> entityRef = chunk.getReferenceTo(entityIndex);
-        if (entityRef == null) {
-            logger.atWarning().log("BreakBlock: No entity ref");
-            return;
-        }
+        if (entityRef == null) return;
 
-        // Get the Player component from the entity
+        // Get player components
         Player player = store.getComponent(entityRef, Player.getComponentType());
-        if (player == null) {
-            logger.atFine().log("BreakBlock: Entity is not a player");
-            return;
-        }
+        PlayerRef playerRef = store.getComponent(entityRef, PlayerRef.getComponentType());
+        if (player == null || playerRef == null) return;
 
-        UUID playerId = player.getUuid();
-        String worldName = "default"; // TODO: Get actual world name
+        UUID playerId = playerRef.getUuid();
+        String worldName = player.getWorld().getName();
 
-        logger.atInfo().log("BreakBlock: Player %s at %s", playerId, targetBlock);
-
-        if (!claimManager.canInteract(playerId, worldName, targetBlock.getX(), targetBlock.getZ())) {
-            logger.atInfo().log("CANCELLING BreakBlockEvent for player %s", playerId);
+        // Breaking blocks requires BUILD trust level
+        if (!claimManager.hasPermissionAt(playerId, worldName, targetBlock.getX(), targetBlock.getZ(), TrustLevel.BUILD)) {
             event.setCancelled(true);
+            if (canSendMessage(playerId)) {
+                player.sendMessage(Messages.cannotBuildHere());
+            }
         }
     }
 }

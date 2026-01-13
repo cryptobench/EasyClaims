@@ -8,23 +8,24 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.landclaims.LandClaims;
-import com.landclaims.data.Claim;
 import com.landclaims.data.PlayerClaims;
+import com.landclaims.data.TrustedPlayer;
 import com.landclaims.util.Messages;
 
 import javax.annotation.Nonnull;
-import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
- * /claims - List all your claims.
+ * /trustlist - List all players you've trusted with their trust levels.
  */
-public class ClaimsCommand extends AbstractPlayerCommand {
+public class TrustListCommand extends AbstractPlayerCommand {
     private final LandClaims plugin;
 
-    public ClaimsCommand(LandClaims plugin) {
-        super("claims", "List all your claims");
+    public TrustListCommand(LandClaims plugin) {
+        super("trustlist", "List players you've trusted");
         this.plugin = plugin;
-        requirePermission("landclaims.list");
+        requirePermission("landclaims.trustlist");
     }
 
     @Override
@@ -35,18 +36,17 @@ public class ClaimsCommand extends AbstractPlayerCommand {
                           @Nonnull World world) {
 
         PlayerClaims claims = plugin.getClaimManager().getPlayerClaims(playerData.getUuid());
-        List<Claim> claimList = claims.getClaims();
+        Map<UUID, TrustedPlayer> trustedPlayers = claims.getTrustedPlayersMap();
 
-        if (claimList.isEmpty()) {
-            playerData.sendMessage(Messages.noClaims());
+        if (trustedPlayers.isEmpty()) {
+            playerData.sendMessage(Messages.noTrustedPlayers());
             return;
         }
 
-        int max = plugin.getClaimManager().getMaxClaims(playerData.getUuid());
-        playerData.sendMessage(Messages.claimsHeader(claimList.size(), max));
+        playerData.sendMessage(Messages.trustedPlayersHeader(trustedPlayers.size()));
 
-        for (Claim claim : claimList) {
-            playerData.sendMessage(Messages.claimEntryWithCoords(claim.getWorld(), claim.getChunkX(), claim.getChunkZ()));
+        for (TrustedPlayer tp : trustedPlayers.values()) {
+            playerData.sendMessage(Messages.trustedPlayerEntry(tp.getName(), tp.getLevel()));
         }
     }
 }

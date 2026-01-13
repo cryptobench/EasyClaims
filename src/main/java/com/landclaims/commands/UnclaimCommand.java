@@ -50,6 +50,8 @@ public class UnclaimCommand extends AbstractPlayerCommand {
 
         if (success) {
             playerData.sendMessage(Messages.chunkUnclaimed(chunkX, chunkZ));
+            // Refresh the world map to show the unclaimed chunk
+            plugin.refreshWorldMapChunk(worldName, chunkX, chunkZ);
         } else {
             playerData.sendMessage(Messages.notYourClaim());
         }

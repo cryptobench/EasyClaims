@@ -1,11 +1,13 @@
 package com.landclaims.managers;
 
+import com.landclaims.config.BlockGroups;
 import com.landclaims.config.PluginConfig;
 import com.landclaims.data.Claim;
 import com.landclaims.data.ClaimStorage;
 import com.landclaims.data.PlayerClaims;
 import com.landclaims.data.PlaytimeData;
 import com.landclaims.data.PlaytimeStorage;
+import com.landclaims.data.TrustLevel;
 import com.landclaims.util.ChunkUtil;
 
 import java.util.UUID;
@@ -17,11 +19,27 @@ public class ClaimManager {
     private final ClaimStorage claimStorage;
     private final PlaytimeStorage playtimeStorage;
     private final PluginConfig config;
+    private final BlockGroups blockGroups;
 
-    public ClaimManager(ClaimStorage claimStorage, PlaytimeStorage playtimeStorage, PluginConfig config) {
+    public ClaimManager(ClaimStorage claimStorage, PlaytimeStorage playtimeStorage, PluginConfig config, BlockGroups blockGroups) {
         this.claimStorage = claimStorage;
         this.playtimeStorage = playtimeStorage;
         this.config = config;
+        this.blockGroups = blockGroups;
+    }
+
+    /**
+     * Gets the block groups configuration.
+     */
+    public BlockGroups getBlockGroups() {
+        return blockGroups;
+    }
+
+    /**
+     * Gets the claim storage for direct access (used by map overlay system).
+     */
+    public ClaimStorage getClaimStorage() {
+        return claimStorage;
     }
 
     /**
@@ -76,10 +94,29 @@ public class ClaimManager {
     }
 
     /**
-     * Checks if a player can interact at a location.
-     * Returns true if: unclaimed, owner, or trusted.
+     * Unclaims all chunks owned by a player.
+     * @return the number of chunks unclaimed
+     */
+    public int unclaimAll(UUID playerId) {
+        PlayerClaims claims = claimStorage.getPlayerClaims(playerId);
+        int count = claims.getClaimCount();
+        claimStorage.removeAllClaims(playerId);
+        return count;
+    }
+
+    /**
+     * Legacy method - checks if player can interact (has any trust level).
+     * Returns true if: unclaimed, owner, or has any trust.
      */
     public boolean canInteract(UUID playerId, String world, double x, double z) {
+        return hasPermissionAt(playerId, world, x, z, TrustLevel.USE);
+    }
+
+    /**
+     * Checks if a player has at least the specified trust level at a location.
+     * Returns true if: unclaimed, owner, or has sufficient trust level.
+     */
+    public boolean hasPermissionAt(UUID playerId, String world, double x, double z, TrustLevel required) {
         int chunkX = ChunkUtil.toChunkX(x);
         int chunkZ = ChunkUtil.toChunkZ(z);
 
@@ -91,9 +128,29 @@ public class ClaimManager {
             return true; // Owner
         }
 
-        // Check if trusted
+        // Check if trusted with sufficient level
         PlayerClaims ownerClaims = claimStorage.getPlayerClaims(owner);
-        return ownerClaims.isTrusted(playerId);
+        return ownerClaims.hasPermission(playerId, required);
+    }
+
+    /**
+     * Gets the trust level a player has at a location.
+     * @return BUILD if owner, the trust level if trusted, or NONE
+     */
+    public TrustLevel getTrustLevelAt(UUID playerId, String world, double x, double z) {
+        int chunkX = ChunkUtil.toChunkX(x);
+        int chunkZ = ChunkUtil.toChunkZ(z);
+
+        UUID owner = claimStorage.getClaimOwner(world, chunkX, chunkZ);
+        if (owner == null) {
+            return TrustLevel.BUILD; // Unclaimed = full access
+        }
+        if (owner.equals(playerId)) {
+            return TrustLevel.BUILD; // Owner = full access
+        }
+
+        PlayerClaims ownerClaims = claimStorage.getPlayerClaims(owner);
+        return ownerClaims.getTrustLevel(playerId);
     }
 
     /**
@@ -120,32 +177,48 @@ public class ClaimManager {
     }
 
     /**
-     * Adds a trusted player.
+     * Adds a trusted player with a specific trust level.
      */
-    public void addTrust(UUID ownerId, UUID trustedId) {
+    public void addTrust(UUID ownerId, UUID trustedId, String trustedName, TrustLevel level) {
         PlayerClaims claims = claimStorage.getPlayerClaims(ownerId);
-        claims.addTrustedPlayer(trustedId);
+        claims.addTrustedPlayer(trustedId, trustedName, level);
         claimStorage.savePlayerClaims(ownerId);
     }
 
     /**
-     * Removes a trusted player.
+     * Legacy method - adds trusted player with BUILD level.
      */
-    public boolean removeTrust(UUID ownerId, UUID trustedId) {
-        PlayerClaims claims = claimStorage.getPlayerClaims(ownerId);
-        boolean removed = claims.removeTrustedPlayer(trustedId);
-        if (removed) {
-            claimStorage.savePlayerClaims(ownerId);
-        }
-        return removed;
+    public void addTrust(UUID ownerId, UUID trustedId, String trustedName) {
+        addTrust(ownerId, trustedId, trustedName, TrustLevel.BUILD);
     }
 
     /**
-     * Checks if a player is trusted by another.
+     * Removes a trusted player.
+     * @return the removed player's name, or null if not found
+     */
+    public String removeTrust(UUID ownerId, UUID trustedId) {
+        PlayerClaims claims = claimStorage.getPlayerClaims(ownerId);
+        String removedName = claims.removeTrustedPlayer(trustedId);
+        if (removedName != null) {
+            claimStorage.savePlayerClaims(ownerId);
+        }
+        return removedName;
+    }
+
+    /**
+     * Checks if a player is trusted by another (has any trust level).
      */
     public boolean isTrusted(UUID ownerId, UUID playerId) {
         PlayerClaims claims = claimStorage.getPlayerClaims(ownerId);
         return claims.isTrusted(playerId);
+    }
+
+    /**
+     * Gets the trust level of a player in another's claims.
+     */
+    public TrustLevel getTrustLevel(UUID ownerId, UUID playerId) {
+        PlayerClaims claims = claimStorage.getPlayerClaims(ownerId);
+        return claims.getTrustLevel(playerId);
     }
 
     /**

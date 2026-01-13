@@ -17,16 +17,14 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Listens for player interaction events to protect claimed areas.
- * Tracks player interactions to correlate with ECS block events handled by BlockProtectionSystems.
+ * Listens for player interaction events for protection checks.
  */
 public class ClaimProtectionListener {
     private final LandClaims plugin;
     private final ClaimManager claimManager;
     private final HytaleLogger logger;
 
-    // Track player interactions - shared with BlockProtectionSystems
-    // Key: "x,y,z" block position, Value: PlayerInteraction data
+    // Track player interactions for ECS event correlation
     private static final Map<String, PlayerInteraction> pendingInteractions = new ConcurrentHashMap<>();
     private static final Map<UUID, PlayerInteraction> playerLastInteraction = new ConcurrentHashMap<>();
 
@@ -42,16 +40,13 @@ public class ClaimProtectionListener {
      * Register player event handlers.
      */
     public void register(EventRegistry eventRegistry) {
-        // Player interaction - track who is interacting with what and cancel if protected
         eventRegistry.registerGlobal(PlayerInteractEvent.class, this::onPlayerInteract);
-
-        // Player join/leave for playtime tracking
         eventRegistry.register(PlayerConnectEvent.class, this::onPlayerConnect);
         eventRegistry.registerGlobal(PlayerDisconnectEvent.class, this::onPlayerDisconnect);
     }
 
     /**
-     * Track player interactions and cancel if in protected area.
+     * Handle player interactions - check claim protection.
      */
     private void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
@@ -61,29 +56,22 @@ public class ClaimProtectionListener {
         if (targetBlock == null) return;
 
         UUID playerId = player.getUuid();
-        String worldName = "default";
         InteractionType actionType = event.getActionType();
+        String worldName = player.getWorld().getName();
 
-        // DEBUG: Log all interactions
-        logger.atInfo().log("PlayerInteractEvent: player=%s block=%s action=%s", playerId, targetBlock, actionType);
-
-        // Track this interaction for ECS event correlation
+        // Track interaction for ECS event correlation
         String blockKey = getBlockKey(targetBlock);
         PlayerInteraction interaction = new PlayerInteraction(playerId, worldName, targetBlock, System.currentTimeMillis());
         pendingInteractions.put(blockKey, interaction);
         playerLastInteraction.put(playerId, interaction);
 
-        // Clean up old interactions
         cleanupOldInteractions();
 
-        // Check if this location is protected - cancel ALL interactions in protected areas
+        // Check if this location is protected
         boolean canInteract = claimManager.canInteract(playerId, worldName, targetBlock.getX(), targetBlock.getZ());
-        int chunkX = (int)Math.floor(targetBlock.getX()/16.0);
-        int chunkZ = (int)Math.floor(targetBlock.getZ()/16.0);
-        logger.atInfo().log("canInteract=%s for chunk %d,%d", canInteract, chunkX, chunkZ);
 
         if (!canInteract) {
-            logger.atInfo().log("CANCELLING PlayerInteractEvent");
+            logger.atFine().log("Blocked interaction: player=%s block=%s action=%s", playerId, targetBlock, actionType);
             event.setCancelled(true);
         }
     }
@@ -98,14 +86,12 @@ public class ClaimProtectionListener {
     }
 
     public static PlayerInteraction findNearbyInteraction(Vector3i targetBlock) {
-        // Check exact match first
         String blockKey = getBlockKey(targetBlock);
         PlayerInteraction exact = pendingInteractions.get(blockKey);
         if (exact != null && !exact.isExpired()) {
             return exact;
         }
 
-        // Check adjacent blocks (for placing)
         for (PlayerInteraction interaction : playerLastInteraction.values()) {
             if (interaction.isExpired()) continue;
             if (interaction.blockPos == null) continue;
@@ -147,7 +133,8 @@ public class ClaimProtectionListener {
     private void onPlayerDisconnect(PlayerDisconnectEvent event) {
         PlayerRef playerRef = event.getPlayerRef();
         if (playerRef != null) {
-            plugin.onPlayerLeave(playerRef.getUuid());
+            UUID playerId = playerRef.getUuid();
+            plugin.onPlayerLeave(playerId);
         }
     }
 

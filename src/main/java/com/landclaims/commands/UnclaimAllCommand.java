@@ -8,23 +8,20 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.landclaims.LandClaims;
-import com.landclaims.data.Claim;
-import com.landclaims.data.PlayerClaims;
 import com.landclaims.util.Messages;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 
 /**
- * /claims - List all your claims.
+ * /unclaimall - Unclaim all your chunks.
  */
-public class ClaimsCommand extends AbstractPlayerCommand {
+public class UnclaimAllCommand extends AbstractPlayerCommand {
     private final LandClaims plugin;
 
-    public ClaimsCommand(LandClaims plugin) {
-        super("claims", "List all your claims");
+    public UnclaimAllCommand(LandClaims plugin) {
+        super("unclaimall", "Unclaim all your chunks");
         this.plugin = plugin;
-        requirePermission("landclaims.list");
+        requirePermission("landclaims.unclaim");
     }
 
     @Override
@@ -34,19 +31,16 @@ public class ClaimsCommand extends AbstractPlayerCommand {
                           @Nonnull PlayerRef playerData,
                           @Nonnull World world) {
 
-        PlayerClaims claims = plugin.getClaimManager().getPlayerClaims(playerData.getUuid());
-        List<Claim> claimList = claims.getClaims();
+        int count = plugin.getClaimManager().unclaimAll(playerData.getUuid());
 
-        if (claimList.isEmpty()) {
-            playerData.sendMessage(Messages.noClaims());
-            return;
-        }
-
-        int max = plugin.getClaimManager().getMaxClaims(playerData.getUuid());
-        playerData.sendMessage(Messages.claimsHeader(claimList.size(), max));
-
-        for (Claim claim : claimList) {
-            playerData.sendMessage(Messages.claimEntryWithCoords(claim.getWorld(), claim.getChunkX(), claim.getChunkZ()));
+        if (count > 0) {
+            playerData.sendMessage(Messages.allClaimsRemoved(count));
+            // Refresh world maps for all known worlds since claims could be in any world
+            for (String worldName : LandClaims.WORLDS.keySet()) {
+                plugin.refreshWorldMap(worldName);
+            }
+        } else {
+            playerData.sendMessage(Messages.noClaimsToRemove());
         }
     }
 }

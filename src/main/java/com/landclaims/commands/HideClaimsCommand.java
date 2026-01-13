@@ -8,21 +8,18 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.landclaims.LandClaims;
-import com.landclaims.data.Claim;
-import com.landclaims.data.PlayerClaims;
 import com.landclaims.util.Messages;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 
 /**
- * /claims - List all your claims.
+ * /hideclaims - This command is deprecated since claims are now shown on the map.
  */
-public class ClaimsCommand extends AbstractPlayerCommand {
+public class HideClaimsCommand extends AbstractPlayerCommand {
     private final LandClaims plugin;
 
-    public ClaimsCommand(LandClaims plugin) {
-        super("claims", "List all your claims");
+    public HideClaimsCommand(LandClaims plugin) {
+        super("hideclaims", "Hide claim visualization (deprecated - see map)");
         this.plugin = plugin;
         requirePermission("landclaims.list");
     }
@@ -33,20 +30,7 @@ public class ClaimsCommand extends AbstractPlayerCommand {
                           @Nonnull Ref<EntityStore> playerRef,
                           @Nonnull PlayerRef playerData,
                           @Nonnull World world) {
-
-        PlayerClaims claims = plugin.getClaimManager().getPlayerClaims(playerData.getUuid());
-        List<Claim> claimList = claims.getClaims();
-
-        if (claimList.isEmpty()) {
-            playerData.sendMessage(Messages.noClaims());
-            return;
-        }
-
-        int max = plugin.getClaimManager().getMaxClaims(playerData.getUuid());
-        playerData.sendMessage(Messages.claimsHeader(claimList.size(), max));
-
-        for (Claim claim : claimList) {
-            playerData.sendMessage(Messages.claimEntryWithCoords(claim.getWorld(), claim.getChunkX(), claim.getChunkZ()));
-        }
+        // Claims are now shown on the world map automatically
+        playerData.sendMessage(Messages.claimsHidden());
     }
 }

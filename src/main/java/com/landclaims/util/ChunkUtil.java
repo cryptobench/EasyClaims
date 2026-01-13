@@ -5,7 +5,8 @@ package com.landclaims.util;
  */
 public class ChunkUtil {
 
-    public static final int CHUNK_SIZE = 16;
+    // Hytale uses 32-block chunks (not 16 like Minecraft)
+    public static final int CHUNK_SIZE = 32;
 
     /**
      * Converts a world X coordinate to a chunk X coordinate.
