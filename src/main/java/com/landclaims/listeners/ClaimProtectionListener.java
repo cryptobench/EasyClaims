@@ -1,6 +1,7 @@
 package com.landclaims.listeners;
 
 import com.hypixel.hytale.event.EventRegistry;
+import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
@@ -22,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ClaimProtectionListener {
     private final LandClaims plugin;
     private final ClaimManager claimManager;
+    private final HytaleLogger logger;
 
     // Track player interactions - shared with BlockProtectionSystems
     // Key: "x,y,z" block position, Value: PlayerInteraction data
@@ -33,6 +35,7 @@ public class ClaimProtectionListener {
     public ClaimProtectionListener(LandClaims plugin) {
         this.plugin = plugin;
         this.claimManager = plugin.getClaimManager();
+        this.logger = plugin.getLogger();
     }
 
     /**
@@ -62,8 +65,7 @@ public class ClaimProtectionListener {
         InteractionType actionType = event.getActionType();
 
         // DEBUG: Log all interactions
-        System.out.println("[LandClaims] PlayerInteractEvent: player=" + playerId +
-            " block=" + targetBlock + " action=" + actionType);
+        logger.atInfo().log("PlayerInteractEvent: player=%s block=%s action=%s", playerId, targetBlock, actionType);
 
         // Track this interaction for ECS event correlation
         String blockKey = getBlockKey(targetBlock);
@@ -76,11 +78,12 @@ public class ClaimProtectionListener {
 
         // Check if this location is protected - cancel ALL interactions in protected areas
         boolean canInteract = claimManager.canInteract(playerId, worldName, targetBlock.getX(), targetBlock.getZ());
-        System.out.println("[LandClaims] canInteract=" + canInteract + " for chunk " +
-            (int)Math.floor(targetBlock.getX()/16.0) + "," + (int)Math.floor(targetBlock.getZ()/16.0));
+        int chunkX = (int)Math.floor(targetBlock.getX()/16.0);
+        int chunkZ = (int)Math.floor(targetBlock.getZ()/16.0);
+        logger.atInfo().log("canInteract=%s for chunk %d,%d", canInteract, chunkX, chunkZ);
 
         if (!canInteract) {
-            System.out.println("[LandClaims] CANCELLING PlayerInteractEvent");
+            logger.atInfo().log("CANCELLING PlayerInteractEvent");
             event.setCancelled(true);
         }
     }

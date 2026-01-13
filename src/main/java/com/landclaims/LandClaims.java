@@ -73,28 +73,27 @@ public class LandClaims extends JavaPlugin {
         protectionListener.register(getEventRegistry());
 
         // Register ECS block protection systems
-        System.out.println("[LandClaims] Registering ECS block protection systems...");
+        getLogger().atInfo().log("Registering ECS block protection systems...");
         try {
             // Register entity event types first - required before systems can receive these events
             getEntityStoreRegistry().registerEntityEventType(DamageBlockEvent.class);
             getEntityStoreRegistry().registerEntityEventType(BreakBlockEvent.class);
             getEntityStoreRegistry().registerEntityEventType(PlaceBlockEvent.class);
             getEntityStoreRegistry().registerEntityEventType(UseBlockEvent.Pre.class);
-            System.out.println("[LandClaims] Registered entity event types");
+            getLogger().atInfo().log("Registered entity event types");
 
             // Now register the systems that handle these events
-            getEntityStoreRegistry().registerSystem(new BlockDamageProtectionSystem(claimManager));
-            System.out.println("[LandClaims] Registered BlockDamageProtectionSystem");
-            getEntityStoreRegistry().registerSystem(new BlockBreakProtectionSystem(claimManager));
-            System.out.println("[LandClaims] Registered BlockBreakProtectionSystem");
-            getEntityStoreRegistry().registerSystem(new BlockPlaceProtectionSystem(claimManager));
-            System.out.println("[LandClaims] Registered BlockPlaceProtectionSystem");
-            getEntityStoreRegistry().registerSystem(new BlockUseProtectionSystem(claimManager));
-            System.out.println("[LandClaims] Registered BlockUseProtectionSystem");
-            System.out.println("[LandClaims] All ECS systems registered successfully!");
+            getEntityStoreRegistry().registerSystem(new BlockDamageProtectionSystem(claimManager, getLogger()));
+            getLogger().atInfo().log("Registered BlockDamageProtectionSystem");
+            getEntityStoreRegistry().registerSystem(new BlockBreakProtectionSystem(claimManager, getLogger()));
+            getLogger().atInfo().log("Registered BlockBreakProtectionSystem");
+            getEntityStoreRegistry().registerSystem(new BlockPlaceProtectionSystem(claimManager, getLogger()));
+            getLogger().atInfo().log("Registered BlockPlaceProtectionSystem");
+            getEntityStoreRegistry().registerSystem(new BlockUseProtectionSystem(claimManager, getLogger()));
+            getLogger().atInfo().log("Registered BlockUseProtectionSystem");
+            getLogger().atInfo().log("All ECS systems registered successfully!");
         } catch (Exception e) {
-            System.out.println("[LandClaims] ERROR registering ECS systems: " + e.getMessage());
-            e.printStackTrace();
+            getLogger().atSevere().withCause(e).log("ERROR registering ECS systems");
         }
     }
 

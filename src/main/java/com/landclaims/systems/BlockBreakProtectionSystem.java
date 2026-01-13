@@ -6,6 +6,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EntityEventSystem;
+import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
@@ -20,10 +21,12 @@ import java.util.UUID;
 public class BlockBreakProtectionSystem extends EntityEventSystem<EntityStore, BreakBlockEvent> {
 
     private final ClaimManager claimManager;
+    private final HytaleLogger logger;
 
-    public BlockBreakProtectionSystem(ClaimManager claimManager) {
+    public BlockBreakProtectionSystem(ClaimManager claimManager, HytaleLogger logger) {
         super(BreakBlockEvent.class);
         this.claimManager = claimManager;
+        this.logger = logger;
     }
 
     @Override
@@ -37,29 +40,29 @@ public class BlockBreakProtectionSystem extends EntityEventSystem<EntityStore, B
         Vector3i targetBlock = event.getTargetBlock();
         if (targetBlock == null) return;
 
-        System.out.println("[LandClaims] BreakBlockEvent fired at " + targetBlock);
+        logger.atInfo().log("BreakBlockEvent fired at %s", targetBlock);
 
         // Get the entity that triggered this event
         Ref<EntityStore> entityRef = chunk.getReferenceTo(entityIndex);
         if (entityRef == null) {
-            System.out.println("[LandClaims] BreakBlock: No entity ref");
+            logger.atWarning().log("BreakBlock: No entity ref");
             return;
         }
 
         // Get the Player component from the entity
         Player player = store.getComponent(entityRef, Player.getComponentType());
         if (player == null) {
-            System.out.println("[LandClaims] BreakBlock: Entity is not a player");
+            logger.atFine().log("BreakBlock: Entity is not a player");
             return;
         }
 
         UUID playerId = player.getUuid();
         String worldName = "default"; // TODO: Get actual world name
 
-        System.out.println("[LandClaims] BreakBlock: Player " + playerId + " at " + targetBlock);
+        logger.atInfo().log("BreakBlock: Player %s at %s", playerId, targetBlock);
 
         if (!claimManager.canInteract(playerId, worldName, targetBlock.getX(), targetBlock.getZ())) {
-            System.out.println("[LandClaims] CANCELLING BreakBlockEvent for player " + playerId);
+            logger.atInfo().log("CANCELLING BreakBlockEvent for player %s", playerId);
             event.setCancelled(true);
         }
     }

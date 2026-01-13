@@ -6,6 +6,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.EntityEventSystem;
+import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.event.events.ecs.DamageBlockEvent;
@@ -21,10 +22,12 @@ import java.util.UUID;
 public class BlockDamageProtectionSystem extends EntityEventSystem<EntityStore, DamageBlockEvent> {
 
     private final ClaimManager claimManager;
+    private final HytaleLogger logger;
 
-    public BlockDamageProtectionSystem(ClaimManager claimManager) {
+    public BlockDamageProtectionSystem(ClaimManager claimManager, HytaleLogger logger) {
         super(DamageBlockEvent.class);
         this.claimManager = claimManager;
+        this.logger = logger;
     }
 
     @Override
@@ -56,7 +59,7 @@ public class BlockDamageProtectionSystem extends EntityEventSystem<EntityStore, 
         if (!claimManager.canInteract(playerId, worldName, targetBlock.getX(), targetBlock.getZ())) {
             // Only log on first damage attempt to reduce spam
             if (event.getCurrentDamage() < 0.1f) {
-                System.out.println("[LandClaims] CANCELLING DamageBlockEvent for player " + playerId + " at " + targetBlock);
+                logger.atInfo().log("CANCELLING DamageBlockEvent for player %s at %s", playerId, targetBlock);
             }
             event.setCancelled(true);
         }
