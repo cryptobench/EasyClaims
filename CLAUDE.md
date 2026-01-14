@@ -252,6 +252,92 @@ public class MyCommand extends AbstractPlayerCommand {
 }
 ```
 
+## Permissions System
+
+### Adding Permission Requirements to Commands
+Use `requirePermission()` in command constructors to require a permission:
+```java
+public class MyCommand extends AbstractPlayerCommand {
+    public MyCommand() {
+        super("mycommand", "Description");
+        requirePermission("myplugin.use");  // Players need this permission to use the command
+    }
+}
+```
+
+### Checking Permissions Manually
+```java
+// On Player object (in command execute methods)
+Player player = store.getComponent(playerRef, Player.getComponentType());
+if (player.hasPermission("myplugin.admin")) {
+    // Do admin stuff
+}
+
+// Via PermissionsModule (when you only have UUID)
+import com.hypixel.hytale.server.core.permissions.PermissionsModule;
+
+if (PermissionsModule.get().hasPermission(playerData.getUuid(), "myplugin.admin")) {
+    // Do admin stuff
+}
+```
+
+### Managing Permissions (Server Console Commands)
+```bash
+# Add permission to a group
+perm group add <GroupName> <permission>
+perm group add Adventure easyclaims.use
+perm group add Adventure easyclaims.admin
+
+# Remove permission from a group
+perm group remove <GroupName> <permission>
+
+# List group permissions
+perm group list <GroupName>
+
+# Add user to a group
+perm user group add <username> <GroupName>
+
+# Add permission directly to user
+perm user add <username> <permission>
+
+# Test if you have a permission
+perm test <permission>
+```
+
+### Permission Format & Wildcards
+```
+myplugin.use          # Exact permission
+myplugin.*            # Wildcard - grants all myplugin.* permissions
+*                     # All permissions (admin/OP)
+-myplugin.use         # Negates/denies a specific permission
+-*                    # Denies all permissions
+```
+
+### permissions.json Structure
+Located at `Server/permissions.json`:
+```json
+{
+  "users": {
+    "uuid-here": {
+      "groups": ["Adventure", "Builder"]
+    }
+  },
+  "groups": {
+    "Default": [],
+    "Adventure": ["easyclaims.use"],
+    "OP": ["*"]
+  }
+}
+```
+
+**Important:** Group names are case-sensitive!
+
+### EasyClaims Permissions
+| Permission | Description |
+|------------|-------------|
+| `easyclaims.use` | Basic access to /easyclaims command |
+| `easyclaims.admin` | Admin commands (config, set, reload) |
+
 ## Messages (No Minecraft Color Codes!)
 ```java
 import com.hypixel.hytale.server.core.Message;
@@ -332,4 +418,7 @@ import com.hypixel.hytale.math.vector.Vector3i;
 
 // Messages
 import com.hypixel.hytale.server.core.Message;
+
+// Permissions
+import com.hypixel.hytale.server.core.permissions.PermissionsModule;
 ```
