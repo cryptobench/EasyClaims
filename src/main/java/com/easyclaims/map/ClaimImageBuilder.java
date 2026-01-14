@@ -16,6 +16,7 @@ import com.easyclaims.EasyClaimsAccess;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.Color;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -356,7 +357,53 @@ public class ClaimImageBuilder {
             }
         }
 
+        // Draw owner name and trusted players text on claimed chunks
+        if (claimOwner != null) {
+            drawClaimText(worldName, chunkX, chunkZ);
+        }
+
         return this;
+    }
+
+    /**
+     * Draws owner name and trusted player names on the map tile.
+     * Text is centered and may extend beyond tile boundaries.
+     */
+    private void drawClaimText(String worldName, int chunkX, int chunkZ) {
+        String ownerName = EasyClaimsAccess.getOwnerName(worldName, chunkX, chunkZ);
+        List<String> trustedNames = EasyClaimsAccess.getTrustedPlayerNames(worldName, chunkX, chunkZ);
+
+        if (ownerName == null) {
+            return;
+        }
+
+        // Calculate vertical positioning
+        int lineHeight = BitmapFont.CHAR_HEIGHT + 2; // 7 + 2 = 9 pixels per line
+        int totalLines = 1 + Math.min(trustedNames.size(), 2); // Owner + up to 2 trusted
+        int startY = (this.image.height - (totalLines * lineHeight)) / 2;
+
+        // Draw owner name (white text with black outline for crisp visibility)
+        BitmapFont.drawTextCenteredWithOutline(
+            this.image.data, this.image.width, this.image.height,
+            ownerName, startY,
+            BitmapFont.WHITE, BitmapFont.BLACK
+        );
+
+        // Draw trusted players (yellow)
+        int trustedY = startY + lineHeight;
+        int trustedCount = 0;
+        for (String trustedName : trustedNames) {
+            if (trustedCount >= 2) break;
+
+            BitmapFont.drawTextCenteredWithOutline(
+                this.image.data, this.image.width, this.image.height,
+                trustedName, trustedY,
+                BitmapFont.YELLOW, BitmapFont.BLACK
+            );
+
+            trustedY += lineHeight;
+            trustedCount++;
+        }
     }
 
     private static float shadeFromHeights(int blockPixelX, int blockPixelZ, int blockPixelWidth, int blockPixelHeight,

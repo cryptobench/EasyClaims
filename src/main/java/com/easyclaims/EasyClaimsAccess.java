@@ -1,7 +1,12 @@
 package com.easyclaims;
 
 import com.easyclaims.data.ClaimStorage;
+import com.easyclaims.data.PlayerClaims;
+import com.easyclaims.data.TrustedPlayer;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -46,5 +51,44 @@ public class EasyClaimsAccess {
             return "Unknown";
         }
         return claimStorage.getPlayerName(playerId);
+    }
+
+    /**
+     * Gets the owner name for a claimed chunk.
+     */
+    public static String getOwnerName(String worldName, int chunkX, int chunkZ) {
+        UUID owner = getClaimOwner(worldName, chunkX, chunkZ);
+        if (owner == null) {
+            return null;
+        }
+        return getPlayerName(owner);
+    }
+
+    /**
+     * Gets the list of trusted player names for a claimed chunk.
+     * Returns an empty list if unclaimed or no trusted players.
+     */
+    public static List<String> getTrustedPlayerNames(String worldName, int chunkX, int chunkZ) {
+        List<String> names = new ArrayList<>();
+        if (claimStorage == null) {
+            return names;
+        }
+
+        UUID owner = getClaimOwner(worldName, chunkX, chunkZ);
+        if (owner == null) {
+            return names;
+        }
+
+        PlayerClaims playerClaims = claimStorage.getPlayerClaims(owner);
+        if (playerClaims == null) {
+            return names;
+        }
+
+        Map<UUID, TrustedPlayer> trustedMap = playerClaims.getTrustedPlayersMap();
+        for (TrustedPlayer trusted : trustedMap.values()) {
+            names.add(trusted.getName());
+        }
+
+        return names;
     }
 }
