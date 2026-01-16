@@ -385,6 +385,40 @@ mvn clean package
 # Copy target/PluginName-1.0.0.jar to Server/mods/
 ```
 
+## Git Commits & Release Notes
+
+**IMPORTANT:** The CI workflow automatically creates GitHub releases from commits to master/main. The commit message is used as the release notes in the "What's Changed" section.
+
+### Commit Message Requirements
+When committing changes, write descriptive commit messages that serve as release notes:
+
+```
+<Short summary of change>
+
+<Detailed description of what changed and why>
+- List specific changes
+- Include any breaking changes
+- Mention new features or bug fixes
+```
+
+### Example Good Commit Message
+```
+Add item pickup protection for claimed areas
+
+Protect flowers, bottles, and other harvestable items from being picked up
+by untrusted players in claimed chunks.
+
+- Add ItemPickupProtectionSystem for InteractivelyPickupItemEvent
+- Add cannotPickupItemsHere() message
+- Register system in main plugin class
+```
+
+### Why This Matters
+- Each push to master triggers a new release
+- The commit message becomes the release notes
+- Users see "What's Changed" in the GitHub release
+- Good commit messages = good release documentation
+
 ## Key Imports
 ```java
 // Plugin

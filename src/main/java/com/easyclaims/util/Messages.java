@@ -177,6 +177,10 @@ public class Messages {
         return Message.raw("You cannot damage blocks in this claimed area!").color(RED);
     }
 
+    public static Message cannotPickupItemsHere() {
+        return Message.raw("You cannot pick up items in this claimed area!").color(RED);
+    }
+
     public static Message cannotUseBlock(TrustLevel required) {
         String action = switch (required) {
             case USE -> "use this";

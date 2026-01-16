@@ -39,6 +39,11 @@ jobs:
       contents: write
 
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
     - name: Download artifact
       uses: actions/download-artifact@v4
       with:
@@ -57,6 +62,20 @@ jobs:
       id: version
       run: echo "VERSION=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
 
+    - name: Get commit message
+      id: commit
+      run: |
+        # Get the full commit message (subject + body)
+        COMMIT_MSG=$(git log -1 --pretty=format:"%B")
+        # Escape for GitHub Actions output
+        COMMIT_MSG="${COMMIT_MSG//'%'/'%25'}"
+        COMMIT_MSG="${COMMIT_MSG//$'\n'/'%0A'}"
+        COMMIT_MSG="${COMMIT_MSG//$'\r'/'%0D'}"
+        echo "MESSAGE<<EOF" >> $GITHUB_OUTPUT
+        git log -1 --pretty=format:"%B" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
     - name: Rename JAR
       run: mv dist/EasyClaims-*.jar dist/EasyClaims-${{ steps.version.outputs.VERSION }}.jar
 
@@ -71,46 +90,15 @@ jobs:
           **Commit:** `${{ steps.sha.outputs.SHORT_SHA }}`
           **Date:** ${{ steps.date.outputs.DATE }}
 
+          ### What's Changed
+          ${{ steps.commit.outputs.MESSAGE }}
+
+          ---
+
           ### Installation
           1. Download `EasyClaims-${{ steps.version.outputs.VERSION }}.jar`
           2. Place in your Hytale server's `mods/` folder
           3. Restart the server
-
-          ### Features
-          - Chunk-based land claiming with visual map integration
-          - In-game GUI for managing claims and trusted players
-          - Playtime-based claim limits (more playtime = more claims)
-          - Trust system with 4 permission levels
-          - Full block protection for claimed areas
-
-          ### Commands
-          | Command | Description |
-          |---------|-------------|
-          | `/easyclaims gui` | Open claim map GUI |
-          | `/easyclaims settings` | Open settings GUI to manage trusted players |
-          | `/easyclaims claim` | Claim the chunk you're standing in |
-          | `/easyclaims unclaim` | Unclaim current chunk |
-          | `/easyclaims list` | List all your claims |
-          | `/easyclaims trust <player> [level]` | Trust a player (levels: use, container, workstation, build) |
-          | `/easyclaims untrust <player>` | Remove trust |
-          | `/easyclaims trustlist` | List trusted players |
-          | `/easyclaims playtime` | Show your playtime and claim slots |
-
-          ### Admin Commands
-          | Command | Description |
-          |---------|-------------|
-          | `/easyclaims admin gui` | Open claim manager GUI (admin mode) |
-          | `/easyclaims admin config` | Show current server settings |
-          | `/easyclaims admin set starting <n>` | Set starting claims for new players |
-          | `/easyclaims admin set perhour <n>` | Set claims earned per hour played |
-          | `/easyclaims admin set max <n>` | Set maximum claims allowed |
-          | `/easyclaims admin reload` | Reload config from file |
-
-          ### Permissions
-          ```
-          perm group add Adventure easyclaims.use
-          perm group add admin easyclaims.admin
-          ```
         files: dist/EasyClaims-${{ steps.version.outputs.VERSION }}.jar
         prerelease: false
         make_latest: true
