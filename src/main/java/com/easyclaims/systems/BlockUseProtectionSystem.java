@@ -15,6 +15,7 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.event.events.ecs.UseBlockEvent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.protocol.InteractionType;
 import com.easyclaims.config.BlockGroups;
 import com.easyclaims.data.TrustLevel;
 import com.easyclaims.managers.ClaimManager;
@@ -86,24 +87,39 @@ public class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, Use
 
         UUID playerId = playerRef.getUuid();
         String worldName = player.getWorld().getName();
+        InteractionType interactionType = event.getInteractionType();
 
-        // Determine required trust level based on block type
+        // Determine required trust level based on interaction type and block type
         BlockType blockType = event.getBlockType();
-        TrustLevel requiredLevel = getRequiredTrustLevel(blockType);
+        TrustLevel requiredLevel = getRequiredTrustLevel(blockType, interactionType);
 
         // Check if player has permission
         if (!claimManager.hasPermissionAt(playerId, worldName, targetBlock.getX(), targetBlock.getZ(), requiredLevel)) {
             event.setCancelled(true);
             if (canSendMessage(playerId)) {
-                player.sendMessage(Messages.cannotUseBlock(requiredLevel));
+                // Send appropriate message based on interaction type
+                if (interactionType == InteractionType.Pickup) {
+                    player.sendMessage(Messages.cannotPickupItemsHere());
+                } else {
+                    player.sendMessage(Messages.cannotUseBlock(requiredLevel));
+                }
             }
+            logger.atFine().log("Blocked UseBlockEvent: player=%s block=%s interaction=%s required=%s",
+                playerId, targetBlock, interactionType, requiredLevel);
         }
     }
 
     /**
-     * Determines the required trust level based on block type.
+     * Determines the required trust level based on block type and interaction type.
+     * Pickup interactions (harvesting flowers, etc.) require BUILD trust since they destroy the block.
      */
-    private TrustLevel getRequiredTrustLevel(BlockType blockType) {
+    private TrustLevel getRequiredTrustLevel(BlockType blockType, InteractionType interactionType) {
+        // Pickup interactions (harvesting flowers, bottles, etc.) require BUILD trust
+        // since they effectively destroy/take the block
+        if (interactionType == InteractionType.Pickup) {
+            return TrustLevel.BUILD;
+        }
+
         if (blockType == null) {
             return TrustLevel.USE; // Default to USE for unknown blocks
         }

@@ -3,7 +3,7 @@ $C = "../Common.ui";
 $C.@PageOverlay {
 
   $C.@Container {
-    Anchor: (Width: 620, Height: 700);
+    Anchor: (Width: 1020, Height: 750);
 
     #Title {
       Group {
