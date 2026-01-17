@@ -27,7 +27,7 @@ public class EasyClaimsChunkWorldMap implements IWorldMap {
         settingsPacket.defaultScale = 128.0F;
         settingsPacket.minScale = 64.0F;
         settingsPacket.maxScale = 128.0F;
-        return new WorldMapSettings(null, 3.0F, 1.0F, 16, 32, settingsPacket);
+        return new WorldMapSettings(null, 3.0F, 2.0F, 3, 32, settingsPacket);
     }
 
     @Override
