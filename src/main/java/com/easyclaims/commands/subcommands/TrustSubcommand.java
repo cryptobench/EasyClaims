@@ -6,6 +6,7 @@ import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -21,7 +22,7 @@ import java.util.UUID;
 
 public class TrustSubcommand extends AbstractPlayerCommand {
     private final EasyClaims plugin;
-    private final OptionalArg<String> playerArg;
+    private final RequiredArg<String> playerArg;
     private final OptionalArg<String> levelArg;
 
     private static final Color GREEN = new Color(85, 255, 85);
@@ -31,7 +32,7 @@ public class TrustSubcommand extends AbstractPlayerCommand {
     public TrustSubcommand(EasyClaims plugin) {
         super("trust", "Trust a player to interact with your claims");
         this.plugin = plugin;
-        this.playerArg = withOptionalArg("player", "Player name to trust", ArgTypes.STRING);
+        this.playerArg = withRequiredArg("player", "Player name to trust", ArgTypes.STRING);
         this.levelArg = withOptionalArg("level", "Trust level (use/container/workstation/build)", ArgTypes.STRING);
         requirePermission("easyclaims.use");
     }
@@ -44,12 +45,6 @@ public class TrustSubcommand extends AbstractPlayerCommand {
                           @Nonnull World world) {
         String playerInput = playerArg.get(ctx);
         String levelInput = levelArg.get(ctx);
-
-        if (playerInput == null || playerInput.isEmpty()) {
-            playerData.sendMessage(Message.raw("Usage: /easyclaims trust <player> [level]").color(RED));
-            playerData.sendMessage(Message.raw("Levels: use, container, workstation, build").color(GRAY));
-            return;
-        }
 
         TrustLevel level = TrustLevel.BUILD;
         if (levelInput != null && !levelInput.isEmpty()) {

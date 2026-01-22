@@ -4,7 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -18,8 +18,8 @@ import java.awt.Color;
 
 public class AdminSetSubcommand extends AbstractPlayerCommand {
     private final EasyClaims plugin;
-    private final OptionalArg<String> keyArg;
-    private final OptionalArg<String> valueArg;
+    private final RequiredArg<String> keyArg;
+    private final RequiredArg<Integer> valueArg;
 
     private static final Color GOLD = new Color(255, 170, 0);
     private static final Color GREEN = new Color(85, 255, 85);
@@ -28,10 +28,10 @@ public class AdminSetSubcommand extends AbstractPlayerCommand {
     private static final Color GRAY = new Color(170, 170, 170);
 
     public AdminSetSubcommand(EasyClaims plugin) {
-        super("set", "Change a server claim setting");
+        super("set", "Change a server claim setting (starting/perhour/max/buffer)");
         this.plugin = plugin;
-        this.keyArg = withOptionalArg("key", "Setting name (starting/perhour/max/buffer)", ArgTypes.STRING);
-        this.valueArg = withOptionalArg("value", "New value", ArgTypes.STRING);
+        this.keyArg = withRequiredArg("setting", "Setting name (starting/perhour/max/buffer)", ArgTypes.STRING);
+        this.valueArg = withRequiredArg("value", "New value", ArgTypes.INTEGER);
         requirePermission("easyclaims.admin");
     }
 
@@ -42,28 +42,7 @@ public class AdminSetSubcommand extends AbstractPlayerCommand {
                           @Nonnull PlayerRef playerData,
                           @Nonnull World world) {
         String key = keyArg.get(ctx);
-        String valueStr = valueArg.get(ctx);
-
-        if (key == null || valueStr == null) {
-            playerData.sendMessage(Message.raw("How to change settings:").color(GOLD));
-            playerData.sendMessage(Message.raw("  /easyclaims admin set starting <number>").color(YELLOW));
-            playerData.sendMessage(Message.raw("    How many claims new players start with").color(GRAY));
-            playerData.sendMessage(Message.raw("  /easyclaims admin set perhour <number>").color(YELLOW));
-            playerData.sendMessage(Message.raw("    Extra claims earned per hour played").color(GRAY));
-            playerData.sendMessage(Message.raw("  /easyclaims admin set max <number>").color(YELLOW));
-            playerData.sendMessage(Message.raw("    Maximum claims any player can have").color(GRAY));
-            playerData.sendMessage(Message.raw("  /easyclaims admin set buffer <number>").color(YELLOW));
-            playerData.sendMessage(Message.raw("    Buffer zone in chunks around claims (0 = disabled)").color(GRAY));
-            return;
-        }
-
-        int value;
-        try {
-            value = Integer.parseInt(valueStr);
-        } catch (NumberFormatException e) {
-            playerData.sendMessage(Message.raw("Please enter a number! Example: /easyclaims admin set max 100").color(RED));
-            return;
-        }
+        int value = valueArg.get(ctx);
 
         PluginConfig config = plugin.getPluginConfig();
         switch (key.toLowerCase()) {
