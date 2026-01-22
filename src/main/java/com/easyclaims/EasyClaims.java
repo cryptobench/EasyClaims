@@ -16,6 +16,7 @@ import com.easyclaims.systems.BlockPlaceProtectionSystem;
 import com.easyclaims.systems.BlockUseProtectionSystem;
 import com.easyclaims.systems.ClaimTitleSystem;
 import com.easyclaims.systems.ItemPickupProtectionSystem;
+import com.easyclaims.systems.PvPProtectionSystem;
 import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
@@ -73,7 +74,7 @@ public class EasyClaims extends JavaPlugin {
         playtimeStorage = new PlaytimeStorage(getDataDirectory());
 
         // Initialize static accessor for map system
-        EasyClaimsAccess.init(claimStorage);
+        EasyClaimsAccess.init(claimStorage, config);
 
         // Initialize managers
         claimManager = new ClaimManager(claimStorage, playtimeStorage, config, blockGroups);
@@ -114,6 +115,7 @@ public class EasyClaims extends JavaPlugin {
             getEntityStoreRegistry().registerSystem(new BlockPlaceProtectionSystem(claimManager, getLogger()));
             getEntityStoreRegistry().registerSystem(new BlockUseProtectionSystem(claimManager, getLogger()));
             getEntityStoreRegistry().registerSystem(new ItemPickupProtectionSystem(claimManager, getLogger()));
+            getEntityStoreRegistry().registerSystem(new PvPProtectionSystem(claimManager, getLogger()));
 
             // Register claim title system (shows banner when entering/leaving claims)
             claimTitleSystem = new ClaimTitleSystem(claimStorage);
@@ -136,8 +138,13 @@ public class EasyClaims extends JavaPlugin {
         // Set our custom world map provider for persistent worlds
         try {
             if (!world.getWorldConfig().isDeleteOnRemove()) {
+                // Set custom world map provider for map tiles
                 world.getWorldConfig().setWorldMapProvider(new EasyClaimsWorldMapProvider());
                 getLogger().atWarning().log("[Map] Set EasyClaimsWorldMapProvider for world: %s", world.getName());
+
+                // Register the marker provider for POI markers (enables live updates)
+                world.getWorldMapManager().addMarkerProvider("easyclaims", mapOverlayProvider);
+                getLogger().atInfo().log("[Map] Registered ClaimMapOverlayProvider for world: %s", world.getName());
             }
         } catch (Exception e) {
             getLogger().atSevere().withCause(e).log("[Map] Failed to set map provider for world: %s", world.getName());

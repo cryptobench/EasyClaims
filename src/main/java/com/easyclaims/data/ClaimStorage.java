@@ -235,7 +235,11 @@ public class ClaimStorage {
                 if (data != null) {
                     if (data.claims != null) {
                         for (ClaimJson c : data.claims) {
-                            claims.addClaim(new Claim(c.world, c.chunkX, c.chunkZ, c.claimedAt));
+                            // Migration: null values use defaults (pvpEnabled=true, adminClaim=false)
+                            boolean pvpEnabled = c.pvpEnabled != null ? c.pvpEnabled : true;
+                            boolean adminClaim = c.adminClaim != null ? c.adminClaim : false;
+                            claims.addClaim(new Claim(c.world, c.chunkX, c.chunkZ, c.claimedAt,
+                                    pvpEnabled, adminClaim, c.displayName));
                         }
                     }
                     // Newest format: trustedPlayersData (Map<UUID, TrustedPlayerJson>)
@@ -300,6 +304,9 @@ public class ClaimStorage {
             c.chunkX = claim.getChunkX();
             c.chunkZ = claim.getChunkZ();
             c.claimedAt = claim.getClaimedAt();
+            c.pvpEnabled = claim.isPvpEnabled();
+            c.adminClaim = claim.isAdminClaim();
+            c.displayName = claim.getDisplayName();
             data.claims.add(c);
         }
 
@@ -384,6 +391,38 @@ public class ClaimStorage {
      */
     public boolean isClaimed(String world, int chunkX, int chunkZ) {
         return getClaimOwner(world, chunkX, chunkZ) != null;
+    }
+
+    /**
+     * Gets the full claim details at a location, or null if unclaimed.
+     *
+     * @param world The world name
+     * @param chunkX Chunk X coordinate
+     * @param chunkZ Chunk Z coordinate
+     * @return The Claim object, or null if not claimed
+     */
+    public Claim getClaimAt(String world, int chunkX, int chunkZ) {
+        UUID owner = getClaimOwner(world, chunkX, chunkZ);
+        if (owner == null) return null;
+
+        PlayerClaims playerClaims = getPlayerClaims(owner);
+        for (Claim claim : playerClaims.getClaims()) {
+            if (claim.getWorld().equals(world) &&
+                claim.getChunkX() == chunkX && claim.getChunkZ() == chunkZ) {
+                return claim;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Updates a claim's data (e.g., PvP setting) and saves.
+     * The claim must already exist.
+     *
+     * @param playerId The claim owner's UUID
+     */
+    public void updatePlayerClaims(UUID playerId) {
+        savePlayerClaims(playerId);
     }
 
     /**
@@ -475,6 +514,10 @@ public class ClaimStorage {
         int chunkX;
         int chunkZ;
         long claimedAt;
+        // New fields for PvP/admin claims (nullable for migration)
+        Boolean pvpEnabled;
+        Boolean adminClaim;
+        String displayName;
     }
 
     private static class TrustedPlayerJson {

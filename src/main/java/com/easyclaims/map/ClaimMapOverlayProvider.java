@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,9 +31,6 @@ public class ClaimMapOverlayProvider implements WorldMapManager.MarkerProvider {
 
     private final ClaimStorage claimStorage;
     private final HytaleLogger logger;
-
-    // Track which chunks we've already sent overlays for per player
-    private final Map<UUID, Set<String>> sentOverlays = new ConcurrentHashMap<>();
 
     // View radius in chunks for sending overlays
     private static final int VIEW_RADIUS = 100;
@@ -218,41 +214,17 @@ public class ClaimMapOverlayProvider implements WorldMapManager.MarkerProvider {
     }
 
     /**
-     * Clears cached overlay data for a player (call on disconnect).
+     * Clears cached data for a player (call on disconnect).
+     * Hytale's WorldMapTracker handles marker cleanup automatically via mark-and-sweep.
      */
     public void clearPlayerCache(UUID playerId) {
-        sentOverlays.remove(playerId);
+        hasLoggedDebug.remove(playerId);
     }
 
     /**
-     * Clears all cached overlay data.
+     * Clears all cached data.
      */
     public void clearAllCaches() {
-        sentOverlays.clear();
-    }
-
-    /**
-     * Invalidates cached overlays for specific chunks (call when claims change).
-     */
-    public void invalidateChunks(String world, int... chunkCoords) {
-        for (int i = 0; i < chunkCoords.length; i += 2) {
-            String chunkKey = ChunkUtil.chunkKey(chunkCoords[i], chunkCoords[i + 1]);
-            String overlayKey = world + ":" + chunkKey;
-
-            // Remove from all player caches so it gets resent
-            for (Set<String> cache : sentOverlays.values()) {
-                cache.remove(overlayKey);
-            }
-        }
-    }
-
-    /**
-     * Invalidates all cached overlays for a world.
-     */
-    public void invalidateWorld(String world) {
-        String prefix = world + ":";
-        for (Set<String> cache : sentOverlays.values()) {
-            cache.removeIf(key -> key.startsWith(prefix));
-        }
+        hasLoggedDebug.clear();
     }
 }

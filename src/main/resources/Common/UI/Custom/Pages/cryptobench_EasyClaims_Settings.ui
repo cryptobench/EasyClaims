@@ -116,7 +116,6 @@ $C.@PageOverlay {
           OutlineSize: 0.5;
         }
 
-
         Group {
           LayoutMode: Left;
 

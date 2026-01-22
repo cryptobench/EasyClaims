@@ -287,6 +287,15 @@ public class ClaimImageBuilder {
         UUID claimOwner = EasyClaimsAccess.getClaimOwner(worldName, chunkX, chunkZ);
         Color claimColor = claimOwner != null ? ClaimColorGenerator.getPlayerColor(claimOwner) : null;
 
+        // Check for admin claims and PvP status
+        boolean isAdminClaim = EasyClaimsAccess.isAdminClaim(worldName, chunkX, chunkZ);
+        boolean pvpDisabled = EasyClaimsAccess.isPvPDisabled(worldName, chunkX, chunkZ);
+
+        // Admin claims get a distinct light blue color
+        if (isAdminClaim && claimOwner != null) {
+            claimColor = new Color(100, 200, 255); // Light blue for admin claims
+        }
+
         // Get neighboring claim owners to determine borders (reuse array to reduce allocations)
         nearbyOwners[0] = EasyClaimsAccess.getClaimOwner(worldName, chunkX, chunkZ + 1); // SOUTH
         nearbyOwners[1] = EasyClaimsAccess.getClaimOwner(worldName, chunkX, chunkZ - 1); // NORTH
@@ -321,6 +330,11 @@ public class ClaimImageBuilder {
                     }
 
                     applyClaimColor(claimColor, this.outColor, isBorder);
+
+                    // Apply green tint for PvP-disabled zones (safe areas)
+                    if (pvpDisabled) {
+                        applyPvPSafeOverlay(this.outColor, isBorder);
+                    }
                 }
 
                 // Apply lighting/shading
@@ -353,7 +367,7 @@ public class ClaimImageBuilder {
 
         // Draw owner name and trusted players text on claimed chunks
         if (claimOwner != null) {
-            drawClaimText(worldName, chunkX, chunkZ);
+            drawClaimText(worldName, chunkX, chunkZ, pvpDisabled);
         }
 
         return this;
@@ -362,13 +376,21 @@ public class ClaimImageBuilder {
     /**
      * Draws owner name and trusted player names on the map tile.
      * Text is centered and may extend beyond tile boundaries.
+     *
+     * @param pvpDisabled If true, shows "[Safe]" indicator
      */
-    private void drawClaimText(String worldName, int chunkX, int chunkZ) {
-        String ownerName = EasyClaimsAccess.getOwnerName(worldName, chunkX, chunkZ);
+    private void drawClaimText(String worldName, int chunkX, int chunkZ, boolean pvpDisabled) {
+        // Use display name for admin claims, otherwise owner name
+        String displayName = EasyClaimsAccess.getClaimDisplayName(worldName, chunkX, chunkZ);
         List<String> trustedNames = EasyClaimsAccess.getTrustedPlayerNames(worldName, chunkX, chunkZ);
 
-        if (ownerName == null) {
+        if (displayName == null) {
             return;
+        }
+
+        // Add "[Safe]" indicator for PvP-disabled zones
+        if (pvpDisabled) {
+            displayName = displayName + " [Safe]";
         }
 
         // Calculate vertical positioning
@@ -376,10 +398,10 @@ public class ClaimImageBuilder {
         int totalLines = 1 + Math.min(trustedNames.size(), 2); // Owner + up to 2 trusted
         int startY = (this.image.height - (totalLines * lineHeight)) / 2;
 
-        // Draw owner name (white text with black outline for crisp visibility)
+        // Draw owner/display name (white text with black outline for crisp visibility)
         BitmapFont.drawTextCenteredWithOutline(
             this.image.data, this.image.width, this.image.height,
-            ownerName, startY,
+            displayName, startY,
             BitmapFont.WHITE, BitmapFont.BLACK
         );
 
@@ -466,6 +488,20 @@ public class ClaimImageBuilder {
         outColor.r = (int) (outColor.r * (1 - blendFactor) + claimColor.getRed() * blendFactor);
         outColor.g = (int) (outColor.g * (1 - blendFactor) + claimColor.getGreen() * blendFactor);
         outColor.b = (int) (outColor.b * (1 - blendFactor) + claimColor.getBlue() * blendFactor);
+    }
+
+    /**
+     * Applies a subtle green tint to indicate PvP-disabled (safe) zones.
+     */
+    private static void applyPvPSafeOverlay(@Nonnull MapColor outColor, boolean isBorder) {
+        // Add subtle green tint for safe zones
+        // This creates a visual "safe zone" indicator
+        float blendFactor = isBorder ? 0.25f : 0.15f;
+
+        // Boost green channel slightly to indicate safe zone
+        outColor.g = Math.min(255, (int) (outColor.g * (1 - blendFactor) + 200 * blendFactor));
+        // Reduce red slightly to make the green more visible
+        outColor.r = (int) (outColor.r * (1 - blendFactor * 0.3f));
     }
 
     private static void getFluidColor(int fluidId, int environmentId, int fluidDepth, @Nonnull MapColor outColor) {

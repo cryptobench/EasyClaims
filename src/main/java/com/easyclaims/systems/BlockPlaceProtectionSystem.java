@@ -84,6 +84,11 @@ public class BlockPlaceProtectionSystem extends EntityEventSystem<EntityStore, P
         UUID playerId = playerRef.getUuid();
         String worldName = player.getWorld().getName();
 
+        // Admin bypass - allow all actions
+        if (player.hasPermission("easyclaims.admin")) {
+            return;
+        }
+
         // Placing blocks requires BUILD trust level
         if (!claimManager.hasPermissionAt(playerId, worldName, targetBlock.getX(), targetBlock.getZ(), TrustLevel.BUILD)) {
             event.setCancelled(true);

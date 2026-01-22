@@ -47,6 +47,15 @@ public class ClaimManager {
      * @return ClaimResult indicating success or failure reason
      */
     public ClaimResult claimChunk(UUID playerId, String world, double x, double z) {
+        return claimChunk(playerId, world, x, z, false);
+    }
+
+    /**
+     * Attempts to claim a chunk for a player with optional bypass of limits.
+     * @param bypassLimits if true, skips buffer zone and claim limit checks (for admins)
+     * @return ClaimResult indicating success or failure reason
+     */
+    public ClaimResult claimChunk(UUID playerId, String world, double x, double z, boolean bypassLimits) {
         int chunkX = ChunkUtil.toChunkX(x);
         int chunkZ = ChunkUtil.toChunkZ(z);
 
@@ -60,23 +69,28 @@ public class ClaimManager {
         }
 
         // Check buffer zone - is this chunk too close to another player's claim?
-        int bufferSize = config.getClaimBufferSize();
-        if (bufferSize > 0) {
-            UUID nearbyOwner = claimStorage.findNearbyClaimByOtherPlayer(
-                world, chunkX, chunkZ, bufferSize, playerId);
-            if (nearbyOwner != null) {
-                return ClaimResult.TOO_CLOSE_TO_OTHER_CLAIM;
+        // Skip for admins with bypass enabled
+        if (!bypassLimits) {
+            int bufferSize = config.getClaimBufferSize();
+            if (bufferSize > 0) {
+                UUID nearbyOwner = claimStorage.findNearbyClaimByOtherPlayer(
+                    world, chunkX, chunkZ, bufferSize, playerId);
+                if (nearbyOwner != null) {
+                    return ClaimResult.TOO_CLOSE_TO_OTHER_CLAIM;
+                }
             }
         }
 
-        // Check claim limit
-        PlayerClaims claims = claimStorage.getPlayerClaims(playerId);
-        PlaytimeData playtime = playtimeStorage.getPlaytime(playerId);
-        int maxClaims = config.calculateMaxClaims(playtime.getTotalHoursWithCurrentSession());
-        int currentClaims = claims.getClaimCount();
+        // Check claim limit - skip for admins with bypass enabled
+        if (!bypassLimits) {
+            PlayerClaims claims = claimStorage.getPlayerClaims(playerId);
+            PlaytimeData playtime = playtimeStorage.getPlaytime(playerId);
+            int maxClaims = config.calculateMaxClaims(playtime.getTotalHoursWithCurrentSession());
+            int currentClaims = claims.getClaimCount();
 
-        if (currentClaims >= maxClaims) {
-            return ClaimResult.LIMIT_REACHED;
+            if (currentClaims >= maxClaims) {
+                return ClaimResult.LIMIT_REACHED;
+            }
         }
 
         // Create the claim
@@ -170,6 +184,44 @@ public class ClaimManager {
         int chunkX = ChunkUtil.toChunkX(x);
         int chunkZ = ChunkUtil.toChunkZ(z);
         return claimStorage.getClaimOwner(world, chunkX, chunkZ);
+    }
+
+    /**
+     * Checks if PvP is enabled at a location.
+     * - Unclaimed (wilderness): PvP always enabled
+     * - Admin claims: Use the claim's pvpEnabled setting
+     * - Player claims: Use server config (pvpInPlayerClaims)
+     *
+     * @param world The world name
+     * @param x Block X coordinate
+     * @param z Block Z coordinate
+     * @return true if PvP is enabled, false if disabled
+     */
+    public boolean isPvPEnabledAt(String world, double x, double z) {
+        int chunkX = ChunkUtil.toChunkX(x);
+        int chunkZ = ChunkUtil.toChunkZ(z);
+
+        Claim claim = claimStorage.getClaimAt(world, chunkX, chunkZ);
+        if (claim == null) {
+            return true; // Unclaimed = PvP enabled (wilderness)
+        }
+
+        // Admin claims have their own per-claim PvP setting
+        if (claim.isAdminClaim()) {
+            return claim.isPvpEnabled();
+        }
+
+        // Player claims use the global server setting
+        return config.isPvpInPlayerClaims();
+    }
+
+    /**
+     * Gets the claim at a location, or null if unclaimed.
+     */
+    public Claim getClaimAt(String world, double x, double z) {
+        int chunkX = ChunkUtil.toChunkX(x);
+        int chunkZ = ChunkUtil.toChunkZ(z);
+        return claimStorage.getClaimAt(world, chunkX, chunkZ);
     }
 
     /**

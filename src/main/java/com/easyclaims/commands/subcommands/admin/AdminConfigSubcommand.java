@@ -10,6 +10,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.easyclaims.EasyClaims;
 import com.easyclaims.config.PluginConfig;
+import com.easyclaims.util.Messages;
 
 import javax.annotation.Nonnull;
 import java.awt.Color;
@@ -38,7 +39,7 @@ public class AdminConfigSubcommand extends AbstractPlayerCommand {
         playerData.sendMessage(Message.raw("=== Server Claim Settings ===").color(GOLD));
         playerData.sendMessage(Message.raw("").color(GRAY));
         playerData.sendMessage(Message.raw("New players start with: " + config.getStartingClaims() + " claims").color(AQUA));
-        playerData.sendMessage(Message.raw("Players earn: " + config.getClaimsPerHour() + " extra claims per hour played").color(AQUA));
+        playerData.sendMessage(Message.raw("Players earn: " + Messages.formatClaimRate(config.getClaimsPerHour())).color(AQUA));
         playerData.sendMessage(Message.raw("Maximum claims allowed: " + config.getMaxClaims()).color(AQUA));
         int buffer = config.getClaimBufferSize();
         String bufferText = buffer > 0 ? buffer + " chunks" : "disabled";

@@ -90,6 +90,11 @@ public class ItemPickupProtectionSystem extends EntityEventSystem<EntityStore, I
         UUID playerId = playerRef.getUuid();
         String worldName = player.getWorld().getName();
 
+        // Admin bypass - allow all actions
+        if (player.hasPermission("easyclaims.admin")) {
+            return;
+        }
+
         // Picking up items requires USE trust level (same as basic interaction)
         if (!claimManager.hasPermissionAt(playerId, worldName, position.getX(), position.getZ(), TrustLevel.USE)) {
             event.setCancelled(true);

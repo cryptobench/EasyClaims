@@ -84,6 +84,11 @@ public class BlockBreakProtectionSystem extends EntityEventSystem<EntityStore, B
         UUID playerId = playerRef.getUuid();
         String worldName = player.getWorld().getName();
 
+        // Admin bypass - allow all actions
+        if (player.hasPermission("easyclaims.admin")) {
+            return;
+        }
+
         // Breaking blocks requires BUILD trust level
         if (!claimManager.hasPermissionAt(playerId, worldName, targetBlock.getX(), targetBlock.getZ(), TrustLevel.BUILD)) {
             event.setCancelled(true);

@@ -23,6 +23,8 @@ That's it! Your builds are now protected.
 - **Share With Friends** - Trust players with different permission levels
 - **Full Protection** - Blocks breaking, placing, and interactions from strangers
 - **Anti-Griefing Buffer** - 2-chunk buffer zone prevents others from claiming too close to you
+- **PvP Protection** - Configure PvP rules per-server or per-claim (safe zones)
+- **Admin Claims** - Server-owned protected areas for spawn, shops, etc.
 
 ---
 
@@ -75,14 +77,19 @@ All commands use `/easyclaims`.
 | `/easyclaims admin reload` | Reload config from file |
 | `/easyclaims admin unclaim` | Remove claim at your location (any owner) |
 | `/easyclaims admin unclaim <player>` | Remove ALL claims from a player |
+| `/easyclaims admin claim [name]` | Create an admin claim (e.g., "Spawn") |
+| `/easyclaims admin pvp [on/off]` | Toggle PvP in the current claim |
 
 **Settings you can change:**
 ```
-/easyclaims admin set starting 6      # Starting claim slots for new players
-/easyclaims admin set perhour 3       # Extra claims earned per hour
-/easyclaims admin set max 100         # Maximum claims any player can have
-/easyclaims admin set buffer 2        # Buffer zone in chunks (0 = disabled)
+/easyclaims admin set starting 6          # Starting claim slots for new players
+/easyclaims admin set perhour 0.25        # Claims earned per hour (0.25 = 1 every 4 hours)
+/easyclaims admin set max 100             # Maximum claims any player can have
+/easyclaims admin set buffer 2            # Buffer zone in chunks (0 = disabled)
+/easyclaims admin set pvpinclaims false   # PvP in player claims (true=PvP, false=PvE)
 ```
+
+**Admin Bypass:** Admins with `easyclaims.admin` permission bypass all protection checks and claim limits.
 
 ---
 
@@ -111,6 +118,7 @@ When you trust someone, you can choose how much access they get:
 - Open your **world map (M)** to see claims highlighted in color
 - Your claims show in your unique color, others show in theirs
 - **Buffer zone**: Other players can't claim within 2 chunks of your claims (prevents griefing)
+- **Admin claims** (light blue) are server-protected areas like spawn
 
 ### Earning More Claims
 
@@ -124,6 +132,27 @@ The longer you play, the more land you can claim:
 | 10 hours | 24 chunks |
 
 Use `/easyclaims playtime` to check your progress!
+
+### PvP Protection
+
+Server owners can configure PvP behavior:
+
+- **PvP Servers** (`pvpinclaims true`) - Fighting is allowed everywhere including player claims
+- **PvE Servers** (`pvpinclaims false`) - Player claims become safe zones where PvP is disabled
+
+On the map, safe zones show with a green tint and `[Safe]` label.
+
+### Admin Claims
+
+Admin claims are special server-owned protected areas for spawn, shops, arenas, etc.
+
+- Created with `/easyclaims admin claim [name]` (e.g., `/easyclaims admin claim Spawn`)
+- PvP disabled by default (toggle with `/easyclaims admin pvp on/off`)
+- Shown in **light blue** on the map
+- Not counted against any player's claim limit
+- Bypass buffer zone restrictions
+
+Use admin claims to create protected community areas!
 
 ---
 

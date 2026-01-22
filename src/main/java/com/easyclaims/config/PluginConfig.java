@@ -57,6 +57,14 @@ public class PluginConfig {
                     obj.remove("playtimeUpdateIntervalSeconds");
                     needsMigration = true;
                 }
+                if (obj.has("allowPlayerPvpToggle") && !obj.has("pvpInPlayerClaims")) {
+                    // Migration: old allowPlayerPvpToggle=true meant PvE (players could disable PvP)
+                    // New pvpInPlayerClaims: true=PvP server, false=PvE server
+                    // So we invert the value: allowPlayerPvpToggle=true -> pvpInPlayerClaims=false
+                    obj.addProperty("pvpInPlayerClaims", !obj.get("allowPlayerPvpToggle").getAsBoolean());
+                    obj.remove("allowPlayerPvpToggle");
+                    needsMigration = true;
+                }
 
                 // Parse the (possibly migrated) config
                 ConfigData loaded = gson.fromJson(obj, ConfigData.class);
@@ -97,7 +105,7 @@ public class PluginConfig {
 
     // ===== GETTERS =====
 
-    public int getClaimsPerHour() {
+    public double getClaimsPerHour() {
         return config.claimsPerHour;
     }
 
@@ -117,10 +125,20 @@ public class PluginConfig {
         return config.claimBufferSize;
     }
 
+    /**
+     * Whether PvP is enabled in player claims.
+     * true = PvP server (fighting allowed in player claims)
+     * false = PvE server (no fighting in player claims)
+     * Note: Admin claims have their own per-claim setting.
+     */
+    public boolean isPvpInPlayerClaims() {
+        return config.pvpInPlayerClaims;
+    }
+
     // ===== SETTERS (auto-save) =====
 
-    public void setClaimsPerHour(int value) {
-        config.claimsPerHour = Math.max(0, value);
+    public void setClaimsPerHour(double value) {
+        config.claimsPerHour = Math.max(0.0, value);
         save();
     }
 
@@ -144,10 +162,15 @@ public class PluginConfig {
         save();
     }
 
+    public void setPvpInPlayerClaims(boolean value) {
+        config.pvpInPlayerClaims = value;
+        save();
+    }
+
     // ===== LEGACY GETTERS (for compatibility) =====
 
     /** @deprecated Use getClaimsPerHour() */
-    public int getChunksPerHour() {
+    public double getChunksPerHour() {
         return getClaimsPerHour();
     }
 
@@ -190,7 +213,12 @@ public class PluginConfig {
             return 0; // Still have starting claims available
         }
 
-        double hoursNeeded = (double) (fromPlaytime + 1) / config.claimsPerHour;
+        // Guard against division by zero
+        if (config.claimsPerHour <= 0) {
+            return -1; // No claims earned through playtime
+        }
+
+        double hoursNeeded = (fromPlaytime + 1) / config.claimsPerHour;
         return Math.max(0, hoursNeeded - currentHours);
     }
 
@@ -200,9 +228,10 @@ public class PluginConfig {
      */
     private static class ConfigData {
         int startingClaims = 4;
-        int claimsPerHour = 2;
+        double claimsPerHour = 2.0;
         int maxClaims = 50;
         int playtimeSaveInterval = 60;
         int claimBufferSize = 2;  // Buffer zone in chunks around claims where others can't claim
+        boolean pvpInPlayerClaims = true;  // true = PvP server, false = PvE server
     }
 }

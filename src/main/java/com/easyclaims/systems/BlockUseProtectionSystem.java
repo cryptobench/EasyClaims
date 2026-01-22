@@ -89,6 +89,11 @@ public class BlockUseProtectionSystem extends EntityEventSystem<EntityStore, Use
         String worldName = player.getWorld().getName();
         InteractionType interactionType = event.getInteractionType();
 
+        // Admin bypass - allow all actions
+        if (player.hasPermission("easyclaims.admin")) {
+            return;
+        }
+
         // Determine required trust level based on interaction type and block type
         BlockType blockType = event.getBlockType();
         TrustLevel requiredLevel = getRequiredTrustLevel(blockType, interactionType);

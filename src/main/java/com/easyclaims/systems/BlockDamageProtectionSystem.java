@@ -85,6 +85,11 @@ public class BlockDamageProtectionSystem extends EntityEventSystem<EntityStore, 
         UUID playerId = playerRef.getUuid();
         String worldName = player.getWorld().getName();
 
+        // Admin bypass - allow all actions
+        if (player.hasPermission("easyclaims.admin")) {
+            return;
+        }
+
         // Damaging blocks requires DAMAGE trust level
         if (!claimManager.hasPermissionAt(playerId, worldName, targetBlock.getX(), targetBlock.getZ(), TrustLevel.DAMAGE)) {
             event.setCancelled(true);

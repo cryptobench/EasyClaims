@@ -1,5 +1,8 @@
 package com.easyclaims;
 
+import com.easyclaims.config.PluginConfig;
+import com.easyclaims.data.AdminClaims;
+import com.easyclaims.data.Claim;
 import com.easyclaims.data.ClaimStorage;
 import com.easyclaims.data.PlayerClaims;
 import com.easyclaims.data.TrustedPlayer;
@@ -16,13 +19,15 @@ import java.util.UUID;
  */
 public class EasyClaimsAccess {
     private static ClaimStorage claimStorage;
+    private static PluginConfig pluginConfig;
 
     /**
-     * Initializes the accessor with the claim storage instance.
+     * Initializes the accessor with the claim storage and config instances.
      * Called during plugin startup.
      */
-    public static void init(ClaimStorage storage) {
+    public static void init(ClaimStorage storage, PluginConfig config) {
         claimStorage = storage;
+        pluginConfig = config;
         System.out.println("[EasyClaimsAccess] Initialized with claimStorage: " + (storage != null ? "OK" : "NULL"));
     }
 
@@ -85,5 +90,53 @@ public class EasyClaimsAccess {
         }
 
         return names;
+    }
+
+    /**
+     * Checks if PvP is disabled at a location (for map rendering).
+     * - Unclaimed: PvP enabled (returns false)
+     * - Admin claims: Use claim's pvpEnabled setting
+     * - Player claims: Use server config (pvpInPlayerClaims)
+     */
+    public static boolean isPvPDisabled(String worldName, int chunkX, int chunkZ) {
+        if (claimStorage == null) return false;
+        Claim claim = claimStorage.getClaimAt(worldName, chunkX, chunkZ);
+        if (claim == null) {
+            return false; // Unclaimed = PvP enabled
+        }
+
+        // Admin claims use their own per-claim setting
+        if (claim.isAdminClaim()) {
+            return !claim.isPvpEnabled();
+        }
+
+        // Player claims use the global server setting
+        if (pluginConfig == null) return false;
+        return !pluginConfig.isPvpInPlayerClaims();
+    }
+
+    /**
+     * Checks if a chunk is an admin claim.
+     */
+    public static boolean isAdminClaim(String worldName, int chunkX, int chunkZ) {
+        if (claimStorage == null) return false;
+        UUID owner = claimStorage.getClaimOwner(worldName, chunkX, chunkZ);
+        return AdminClaims.isAdminClaim(owner);
+    }
+
+    /**
+     * Gets the display name for a claim (for admin claims with custom names).
+     * Returns the custom display name if set, otherwise returns the owner name.
+     */
+    public static String getClaimDisplayName(String worldName, int chunkX, int chunkZ) {
+        if (claimStorage == null) return null;
+
+        Claim claim = claimStorage.getClaimAt(worldName, chunkX, chunkZ);
+        if (claim != null && claim.getDisplayName() != null && !claim.getDisplayName().isEmpty()) {
+            return claim.getDisplayName();
+        }
+
+        // Fall back to owner name
+        return getOwnerName(worldName, chunkX, chunkZ);
     }
 }

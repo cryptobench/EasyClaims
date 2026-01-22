@@ -26,5 +26,6 @@ public class AdminSetSubcommand extends AbstractCommandCollection {
         addSubCommand(new SetPerHourSubcommand(plugin));
         addSubCommand(new SetMaxSubcommand(plugin));
         addSubCommand(new SetBufferSubcommand(plugin));
+        addSubCommand(new SetAllowPvpToggleSubcommand(plugin));
     }
 }

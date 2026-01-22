@@ -6,6 +6,7 @@ import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
@@ -51,7 +52,11 @@ public class ClaimSubcommand extends AbstractPlayerCommand {
         int currentClaims = claimManager.getPlayerClaims(playerId).getClaimCount();
         int maxClaims = claimManager.getMaxClaims(playerId);
 
-        ClaimManager.ClaimResult result = claimManager.claimChunk(playerId, worldName, position.getX(), position.getZ());
+        // Check if player is admin - bypass claim limits and buffer zones
+        Player player = store.getComponent(playerRef, Player.getComponentType());
+        boolean isAdmin = player != null && player.hasPermission("easyclaims.admin");
+
+        ClaimManager.ClaimResult result = claimManager.claimChunk(playerId, worldName, position.getX(), position.getZ(), isAdmin);
 
         switch (result) {
             case SUCCESS:

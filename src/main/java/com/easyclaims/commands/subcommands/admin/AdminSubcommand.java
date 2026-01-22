@@ -20,5 +20,7 @@ public class AdminSubcommand extends AbstractCommandCollection {
         addSubCommand(new AdminReloadSubcommand(plugin));
         addSubCommand(new AdminUnclaimSubcommand(plugin));
         addSubCommand(new AdminFakeClaimSubcommand(plugin));
+        addSubCommand(new AdminClaimSubcommand(plugin));
+        addSubCommand(new AdminPvpSubcommand(plugin));
     }
 }

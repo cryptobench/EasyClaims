@@ -1,5 +1,7 @@
 package com.easyclaims.gui;
 
+import com.easyclaims.EasyClaims;
+import com.easyclaims.data.Claim;
 import com.easyclaims.data.PlayerClaims;
 import com.easyclaims.data.TrustLevel;
 import com.easyclaims.data.TrustedPlayer;
@@ -10,10 +12,12 @@ import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.NameMatching;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
+import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -33,6 +37,7 @@ import java.util.function.Consumer;
  */
 public class ClaimSettingsGui extends InteractiveCustomUIPage<ClaimSettingsGui.SettingsData> {
 
+    private final EasyClaims plugin;
     private final ClaimManager claimManager;
     private final PlaytimeManager playtimeManager;
     private final Consumer<UUID> onTrustChanged;
@@ -42,12 +47,22 @@ public class ClaimSettingsGui extends InteractiveCustomUIPage<ClaimSettingsGui.S
     private int requestingConfirmation = -1;
     private TrustLevel selectedTrustLevel = TrustLevel.BUILD;
 
+    // Current claim info for PvP toggle
+    private String currentWorldName;
+    private double currentX;
+    private double currentZ;
+
     public ClaimSettingsGui(@Nonnull PlayerRef playerRef, ClaimManager claimManager, PlaytimeManager playtimeManager,
-                           Consumer<UUID> onTrustChanged) {
+                           Consumer<UUID> onTrustChanged, EasyClaims plugin,
+                           String worldName, double x, double z) {
         super(playerRef, CustomPageLifetime.CanDismiss, SettingsData.CODEC);
+        this.plugin = plugin;
         this.claimManager = claimManager;
         this.playtimeManager = playtimeManager;
         this.onTrustChanged = onTrustChanged;
+        this.currentWorldName = worldName;
+        this.currentX = x;
+        this.currentZ = z;
     }
 
     @Override
@@ -88,6 +103,7 @@ public class ClaimSettingsGui extends InteractiveCustomUIPage<ClaimSettingsGui.S
             this.sendUpdate(commandBuilder, eventBuilder, true);
             return;
         }
+
 
         // Handle Add button
         if (data.addTrust != null) {
@@ -225,6 +241,7 @@ public class ClaimSettingsGui extends InteractiveCustomUIPage<ClaimSettingsGui.S
                 EventData.of("SelectTrust", "workstation"), false);
         uiEventBuilder.addEventBinding(CustomUIEventBindingType.ValueChanged, "#BuildSetting #CheckBox",
                 EventData.of("SelectTrust", "build"), false);
+
 
         // Set status message - show selected trust level if no other message
         if (!statusMessage.isEmpty()) {

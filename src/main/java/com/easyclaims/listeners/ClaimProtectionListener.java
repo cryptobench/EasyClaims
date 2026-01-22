@@ -70,6 +70,11 @@ public class ClaimProtectionListener {
         Player player = event.getPlayer();
         if (player == null) return;
 
+        // Admin bypass - allow all actions
+        if (player.hasPermission("easyclaims.admin")) {
+            return;
+        }
+
         UUID playerId = player.getUuid();
         InteractionType actionType = event.getActionType();
         String worldName = player.getWorld().getName();

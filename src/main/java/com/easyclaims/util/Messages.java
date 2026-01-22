@@ -137,6 +137,34 @@ public class Messages {
         return Message.raw("You haven't trusted anyone. Use /trust <player> [level] to trust someone!").color(YELLOW);
     }
 
+    // Claim rate formatting
+    /**
+     * Format a claims-per-hour rate for display.
+     * - Rates >= 1 show as "X claims per hour"
+     * - Rates < 1 show as "1 claim every Y hours" where Y = 1/rate
+     */
+    public static String formatClaimRate(double rate) {
+        if (rate <= 0) {
+            return "0 claims per hour";
+        }
+        if (rate >= 1) {
+            // Whole number rates: "2 claims per hour"
+            if (rate == Math.floor(rate)) {
+                int wholeRate = (int) rate;
+                return wholeRate + " claim" + (wholeRate != 1 ? "s" : "") + " per hour";
+            }
+            // Fractional rates >= 1: "1.5 claims per hour"
+            return String.format("%.2g", rate) + " claims per hour";
+        }
+        // Rates < 1: convert to "1 claim every X hours"
+        double hoursPerClaim = 1.0 / rate;
+        if (hoursPerClaim == Math.floor(hoursPerClaim)) {
+            int wholeHours = (int) hoursPerClaim;
+            return "1 claim every " + wholeHours + " hour" + (wholeHours != 1 ? "s" : "");
+        }
+        return "1 claim every " + String.format("%.1f", hoursPerClaim) + " hours";
+    }
+
     // Playtime messages
     public static Message playtimeInfo(double hours, int claimsUsed, int claimsAvailable) {
         return Message.raw("Playtime: " + String.format("%.1f", hours) + " hours | Claims: " + claimsUsed + "/" + claimsAvailable).color(AQUA);
@@ -191,6 +219,72 @@ public class Messages {
             default -> "interact";
         };
         return Message.raw("You don't have permission to " + action + " in this claimed area!").color(RED);
+    }
+
+    // PvP messages
+    public static Message pvpDisabledHere() {
+        return Message.raw("PvP is disabled in this area!").color(RED);
+    }
+
+    public static Message pvpEnabled() {
+        return Message.raw("PvP is now enabled in this claim.").color(GREEN);
+    }
+
+    public static Message pvpDisabled() {
+        return Message.raw("PvP is now disabled in this claim.").color(GREEN);
+    }
+
+    public static Message pvpAlreadyEnabled() {
+        return Message.raw("PvP is already enabled in this claim.").color(YELLOW);
+    }
+
+    public static Message pvpAlreadyDisabled() {
+        return Message.raw("PvP is already disabled in this claim.").color(YELLOW);
+    }
+
+    public static Message pvpToggleNotAllowed() {
+        return Message.raw("PvP toggle is disabled on this server.").color(RED);
+    }
+
+    public static Message pvpStatusEnabled() {
+        return Message.raw("PvP status: Enabled").color(RED);
+    }
+
+    public static Message pvpStatusDisabled() {
+        return Message.raw("PvP status: Disabled (Safe Zone)").color(GREEN);
+    }
+
+    // Admin claim messages
+    public static Message adminClaimCreated(int chunkX, int chunkZ, String displayName) {
+        String msg = "Admin claim created at [" + chunkX + ", " + chunkZ + "]";
+        if (displayName != null && !displayName.isEmpty()) {
+            msg += " (" + displayName + ")";
+        }
+        return Message.raw(msg).color(GREEN);
+    }
+
+    public static Message adminClaimRemoved(int chunkX, int chunkZ) {
+        return Message.raw("Admin claim removed at [" + chunkX + ", " + chunkZ + "]").color(GREEN);
+    }
+
+    public static Message notAdminClaim() {
+        return Message.raw("This is not an admin claim!").color(RED);
+    }
+
+    public static Message cannotUnclaimAdminClaim() {
+        return Message.raw("Use /easyclaims admin unclaim to remove admin claims.").color(RED);
+    }
+
+    public static Message pvpModeChanged(boolean pvpInClaims) {
+        if (pvpInClaims) {
+            return Message.raw("PvP in player claims: ENABLED (PvP server)").color(RED);
+        } else {
+            return Message.raw("PvP in player claims: DISABLED (PvE server)").color(GREEN);
+        }
+    }
+
+    public static Message bufferZoneBlocked(int bufferSize) {
+        return Message.raw("Cannot claim here - too close to another player's claim! (Buffer: " + bufferSize + " chunks)").color(RED);
     }
 
     // Unclaim all messages
