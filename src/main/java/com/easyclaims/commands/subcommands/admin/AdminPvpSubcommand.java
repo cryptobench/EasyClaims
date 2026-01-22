@@ -4,8 +4,6 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
-import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -21,15 +19,15 @@ import java.util.UUID;
 /**
  * Admin command to toggle PvP in any claim.
  * Admins can override PvP settings regardless of server mode.
+ * Usage: /easyclaims admin pvp [on/off]
  */
 public class AdminPvpSubcommand extends AbstractPlayerCommand {
     private final EasyClaims plugin;
-    private final OptionalArg<String> stateArg;
 
     public AdminPvpSubcommand(EasyClaims plugin) {
         super("pvp", "Toggle PvP in the current claim");
         this.plugin = plugin;
-        this.stateArg = withOptionalArg("state", "on/off (omit to toggle)", ArgTypes.STRING);
+        setAllowsExtraArguments(true); // Allow optional positional on/off argument
         requirePermission("easyclaims.admin");
     }
 
@@ -50,8 +48,18 @@ public class AdminPvpSubcommand extends AbstractPlayerCommand {
             return;
         }
 
+        // Get optional state from raw input (everything after "pvp")
+        String state = null;
+        String input = ctx.getInputString();
+        int pvpIndex = input.toLowerCase().lastIndexOf("pvp");
+        if (pvpIndex >= 0) {
+            String afterPvp = input.substring(pvpIndex + 3).trim();
+            if (!afterPvp.isEmpty()) {
+                state = afterPvp.split("\\s+")[0]; // Take first word only
+            }
+        }
+
         // Determine new state
-        String state = stateArg.get(ctx);
         boolean newPvpEnabled;
 
         if (state == null || state.isEmpty()) {

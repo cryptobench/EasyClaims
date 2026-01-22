@@ -4,8 +4,6 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.OptionalArg;
-import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
@@ -23,15 +21,15 @@ import java.util.UUID;
 /**
  * Admin command to create server-owned admin claims.
  * Admin claims have PvP disabled by default and bypass buffer zones.
+ * Usage: /easyclaims admin claim [name]
  */
 public class AdminClaimSubcommand extends AbstractPlayerCommand {
     private final EasyClaims plugin;
-    private final OptionalArg<String> displayNameArg;
 
     public AdminClaimSubcommand(EasyClaims plugin) {
         super("claim", "Create an admin claim at your location");
         this.plugin = plugin;
-        this.displayNameArg = withOptionalArg("name", "Display name for the claim (e.g., Spawn)", ArgTypes.STRING);
+        setAllowsExtraArguments(true); // Allow optional positional name argument
         requirePermission("easyclaims.admin");
     }
 
@@ -60,8 +58,18 @@ public class AdminClaimSubcommand extends AbstractPlayerCommand {
             return;
         }
 
-        // Get optional display name
-        String displayName = displayNameArg.get(ctx);
+        // Get optional display name from raw input (everything after "claim")
+        String displayName = null;
+        String input = ctx.getInputString();
+        // Input format: "easyclaims admin claim [name]" or just "claim [name]" depending on context
+        // Look for any extra arguments after command parsing
+        int claimIndex = input.toLowerCase().lastIndexOf("claim");
+        if (claimIndex >= 0) {
+            String afterClaim = input.substring(claimIndex + 5).trim();
+            if (!afterClaim.isEmpty()) {
+                displayName = afterClaim;
+            }
+        }
 
         // Register admin name for map display
         plugin.getClaimStorage().setPlayerName(AdminClaims.ADMIN_UUID,
