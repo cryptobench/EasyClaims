@@ -168,6 +168,24 @@ public class ClaimStorage {
     }
 
     /**
+     * Finds a player's UUID by their stored username (case-insensitive).
+     * Only works for players who have made at least one claim.
+     * @param username the username to search for
+     * @return the UUID if found, null otherwise
+     */
+    public UUID getPlayerUUID(String username) {
+        if (username == null || username.isEmpty()) {
+            return null;
+        }
+        for (Map.Entry<UUID, String> entry : playerNames.entrySet()) {
+            if (entry.getValue().equalsIgnoreCase(username)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    /**
      * Gets all claimed chunks in a specific world.
      * @return Map of chunk key ("x,z") to owner UUID
      */
@@ -274,6 +292,11 @@ public class ClaimStorage {
                             } catch (IllegalArgumentException ignored) {}
                         }
                     }
+
+                    // Load admin-granted bonus fields
+                    claims.setBonusClaimSlots(data.bonusClaimSlots);
+                    claims.setBonusMaxClaims(data.bonusMaxClaims);
+                    claims.setUnlimitedClaims(data.unlimitedClaims);
                 }
                 return claims;
             } catch (IOException e) {
@@ -318,6 +341,11 @@ public class ClaimStorage {
             tpj.level = tp.getLevel().getKey();
             data.trustedPlayersData.put(entry.getKey().toString(), tpj);
         }
+
+        // Save admin-granted bonus fields
+        data.bonusClaimSlots = claims.getBonusClaimSlots();
+        data.bonusMaxClaims = claims.getBonusMaxClaims();
+        data.unlimitedClaims = claims.hasUnlimitedClaims();
 
         try {
             Files.writeString(file, gson.toJson(data));
@@ -507,6 +535,10 @@ public class ClaimStorage {
         List<String> trustedPlayers; // Oldest format (v1)
         Map<String, String> trustedPlayersWithNames; // Previous format (v2): UUID -> name
         Map<String, TrustedPlayerJson> trustedPlayersData; // Current format (v3): UUID -> {name, level}
+        // Admin-granted bonus fields
+        int bonusClaimSlots = 0;     // Extra slots added after cap
+        int bonusMaxClaims = 0;      // Extra max claims capacity
+        boolean unlimitedClaims = false;  // No cap at all
     }
 
     private static class ClaimJson {

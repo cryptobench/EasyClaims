@@ -2,6 +2,7 @@ package com.easyclaims.commands.subcommands.admin;
 
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractCommandCollection;
 import com.easyclaims.EasyClaims;
+import com.easyclaims.commands.subcommands.admin.grant.AdminGrantSubcommand;
 
 /**
  * Admin command collection for EasyClaims.
@@ -22,5 +23,7 @@ public class AdminSubcommand extends AbstractCommandCollection {
         addSubCommand(new AdminFakeClaimSubcommand(plugin));
         addSubCommand(new AdminClaimSubcommand(plugin));
         addSubCommand(new AdminPvpSubcommand(plugin));
+        addSubCommand(new AdminGrantSubcommand(plugin));
+        addSubCommand(new AdminInfoSubcommand(plugin));
     }
 }

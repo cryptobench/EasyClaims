@@ -79,6 +79,10 @@ All commands use `/easyclaims`.
 | `/easyclaims admin unclaim <player>` | Remove ALL claims from a player |
 | `/easyclaims admin claim [name]` | Create an admin claim (e.g., "Spawn") |
 | `/easyclaims admin pvp [on/off]` | Toggle PvP in the current claim |
+| `/easyclaims admin grant claims <player> <amount>` | Grant bonus claim slots (additive) |
+| `/easyclaims admin grant maxclaims <player> <amount>` | Increase player's max claims cap (additive) |
+| `/easyclaims admin grant maxclaims <player> unlimited` | Remove claims cap entirely |
+| `/easyclaims admin info <player>` | View a player's claim stats and bonuses |
 
 **Settings you can change:**
 ```
@@ -88,6 +92,28 @@ All commands use `/easyclaims`.
 /easyclaims admin set buffer 2            # Buffer zone in chunks (0 = disabled)
 /easyclaims admin set pvpinclaims false   # PvP in player claims (true=PvP, false=PvE)
 ```
+
+**Player Claim Management:**
+
+Grant commands are **additive** - running them multiple times adds more each time:
+```
+# Grant 10 bonus claim slots (added on top of playtime-based limit)
+/easyclaims admin grant claims Steve 10
+
+# Grant 10 more (Steve now has 20 bonus slots total)
+/easyclaims admin grant claims Steve 10
+
+# Increase max claims cap by 50 (server default + 50)
+/easyclaims admin grant maxclaims Alex 50
+
+# Remove the claims cap entirely (unlimited claims)
+/easyclaims admin grant maxclaims Alex unlimited
+
+# View a player's claim stats and bonuses
+/easyclaims admin info Steve
+```
+
+**Note:** `<player>` can be a username (if online or has previously claimed) or UUID. These commands work even when the target player is offline.
 
 **Admin Bypass:** Admins with `easyclaims.admin` permission bypass all protection checks and claim limits.
 

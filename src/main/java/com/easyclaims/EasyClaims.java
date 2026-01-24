@@ -405,4 +405,11 @@ public class EasyClaims extends JavaPlugin {
     public ClaimStorage getClaimStorage() {
         return claimStorage;
     }
+
+    /**
+     * Gets the playtime storage for direct access.
+     */
+    public PlaytimeStorage getPlaytimeStorage() {
+        return playtimeStorage;
+    }
 }

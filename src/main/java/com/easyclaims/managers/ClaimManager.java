@@ -285,10 +285,34 @@ public class ClaimManager {
 
     /**
      * Gets how many claims a player can have.
+     * Takes into account:
+     * - Playtime-based calculation (starting + playtime * rate)
+     * - Server max claims cap
+     * - Admin-granted bonusMaxClaims (added to cap)
+     * - Admin-granted bonusClaimSlots (added after cap)
+     * - Unlimited claims flag (bypasses all caps)
      */
     public int getMaxClaims(UUID playerId) {
+        PlayerClaims claims = claimStorage.getPlayerClaims(playerId);
+
+        // Unlimited claims = no cap at all
+        if (claims.hasUnlimitedClaims()) {
+            return Integer.MAX_VALUE;
+        }
+
         PlaytimeData playtime = playtimeStorage.getPlaytime(playerId);
-        return config.calculateMaxClaims(playtime.getTotalHoursWithCurrentSession());
+
+        // Calculate base from playtime
+        double hours = playtime.getTotalHoursWithCurrentSession();
+        int fromPlaytime = (int) (hours * config.getClaimsPerHour());
+        int base = config.getStartingClaims() + fromPlaytime;
+
+        // Apply cap: server default + any bonus max granted
+        int cap = config.getMaxClaims() + claims.getBonusMaxClaims();
+        int capped = Math.min(base, cap);
+
+        // Add bonus slots ON TOP of the cap
+        return capped + claims.getBonusClaimSlots();
     }
 
     /**

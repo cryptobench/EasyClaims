@@ -18,6 +18,11 @@ public class PlayerClaims {
     // Maps trusted player UUID to their TrustedPlayer data
     private final Map<UUID, TrustedPlayer> trustedPlayers;
 
+    // Admin-granted bonus fields
+    private int bonusClaimSlots = 0;           // Extra slots granted by admins (added after cap)
+    private int bonusMaxClaims = 0;            // Extra max claims capacity (additive)
+    private boolean unlimitedClaims = false;   // If true, no max claims cap
+
     public PlayerClaims(UUID owner) {
         this.owner = owner;
         this.claims = Collections.synchronizedList(new ArrayList<>());
@@ -172,5 +177,67 @@ public class PlayerClaims {
             }
         }
         return null;
+    }
+
+    // ===== ADMIN-GRANTED BONUS METHODS =====
+
+    /**
+     * Gets the bonus claim slots granted by admins.
+     * These are added on top of the playtime-based calculation.
+     */
+    public int getBonusClaimSlots() {
+        return bonusClaimSlots;
+    }
+
+    /**
+     * Adds bonus claim slots (additive).
+     * @param amount the number of slots to add
+     */
+    public void addBonusClaimSlots(int amount) {
+        bonusClaimSlots += amount;
+    }
+
+    /**
+     * Sets the bonus claim slots directly (for loading from storage).
+     */
+    public void setBonusClaimSlots(int slots) {
+        this.bonusClaimSlots = slots;
+    }
+
+    /**
+     * Gets the bonus max claims granted by admins.
+     * This is added to the server's default max claims cap.
+     */
+    public int getBonusMaxClaims() {
+        return bonusMaxClaims;
+    }
+
+    /**
+     * Adds bonus max claims (additive).
+     * @param amount the number to add to the max claims cap
+     */
+    public void addBonusMaxClaims(int amount) {
+        bonusMaxClaims += amount;
+    }
+
+    /**
+     * Sets the bonus max claims directly (for loading from storage).
+     */
+    public void setBonusMaxClaims(int bonus) {
+        this.bonusMaxClaims = bonus;
+    }
+
+    /**
+     * Checks if this player has unlimited claims (no cap).
+     */
+    public boolean hasUnlimitedClaims() {
+        return unlimitedClaims;
+    }
+
+    /**
+     * Sets whether this player has unlimited claims.
+     */
+    public void setUnlimitedClaims(boolean unlimited) {
+        this.unlimitedClaims = unlimited;
     }
 }
