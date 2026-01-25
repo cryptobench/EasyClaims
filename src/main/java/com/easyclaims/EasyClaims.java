@@ -8,7 +8,6 @@ import com.easyclaims.data.PlaytimeStorage;
 import com.easyclaims.listeners.ClaimProtectionListener;
 import com.easyclaims.managers.ClaimManager;
 import com.easyclaims.managers.PlaytimeManager;
-import com.easyclaims.map.ClaimMapOverlayProvider;
 import com.easyclaims.map.EasyClaimsWorldMapProvider;
 import com.easyclaims.systems.BlockBreakProtectionSystem;
 import com.easyclaims.systems.BlockDamageProtectionSystem;
@@ -51,7 +50,6 @@ public class EasyClaims extends JavaPlugin {
     private ClaimManager claimManager;
     private PlaytimeManager playtimeManager;
     private ClaimProtectionListener protectionListener;
-    private ClaimMapOverlayProvider mapOverlayProvider;
     private ClaimTitleSystem claimTitleSystem;
 
     // Track registered worlds for map provider
@@ -104,9 +102,6 @@ public class EasyClaims extends JavaPlugin {
         getEventRegistry().registerGlobal(AddWorldEvent.class, this::onWorldAdd);
         getEventRegistry().registerGlobal(RemoveWorldEvent.class, this::onWorldRemove);
 
-        // Initialize map overlay provider (for markers, kept for compatibility)
-        mapOverlayProvider = new ClaimMapOverlayProvider(claimStorage, getLogger());
-
         // Register ECS block protection systems
         getLogger().atInfo().log("Registering ECS block protection systems...");
         try {
@@ -138,13 +133,9 @@ public class EasyClaims extends JavaPlugin {
         // Set our custom world map provider for persistent worlds
         try {
             if (!world.getWorldConfig().isDeleteOnRemove()) {
-                // Set custom world map provider for map tiles
+                // Set custom world map provider for map tiles (colored claim overlays)
                 world.getWorldConfig().setWorldMapProvider(new EasyClaimsWorldMapProvider());
-                getLogger().atWarning().log("[Map] Set EasyClaimsWorldMapProvider for world: %s", world.getName());
-
-                // Register the marker provider for POI markers (enables live updates)
-                world.getWorldMapManager().addMarkerProvider("easyclaims", mapOverlayProvider);
-                getLogger().atInfo().log("[Map] Registered ClaimMapOverlayProvider for world: %s", world.getName());
+                getLogger().atInfo().log("[Map] Set EasyClaimsWorldMapProvider for world: %s", world.getName());
             }
         } catch (Exception e) {
             getLogger().atSevere().withCause(e).log("[Map] Failed to set map provider for world: %s", world.getName());
@@ -317,11 +308,6 @@ public class EasyClaims extends JavaPlugin {
                 // Save playtime
                 playtimeManager.onPlayerLeave(playerId);
 
-                // Clear map overlay cache for this player
-                if (mapOverlayProvider != null) {
-                    mapOverlayProvider.clearPlayerCache(playerId);
-                }
-
                 // Clear title tracking for this player
                 if (claimTitleSystem != null) {
                     claimTitleSystem.removePlayer(playerId);
@@ -390,13 +376,6 @@ public class EasyClaims extends JavaPlugin {
                 getLogger().atWarning().withCause(e).log("[Map] Error refreshing claims for player %s", playerId);
             }
         }
-    }
-
-    /**
-     * Gets the map overlay provider for external access.
-     */
-    public ClaimMapOverlayProvider getMapOverlayProvider() {
-        return mapOverlayProvider;
     }
 
     /**
