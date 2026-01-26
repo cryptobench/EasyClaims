@@ -1,5 +1,10 @@
 package com.easyclaims.commands.subcommands.admin.set;
 
+import java.awt.Color;
+
+import javax.annotation.Nonnull;
+
+import com.easyclaims.EasyClaims;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
@@ -10,10 +15,6 @@ import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayer
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import com.easyclaims.EasyClaims;
-
-import javax.annotation.Nonnull;
-import java.awt.Color;
 
 /**
  * Admin command to toggle text grouping on the world map.
@@ -60,6 +61,13 @@ public class SetMapTextGroupingSubcommand extends AbstractPlayerCommand {
             playerData.sendMessage(Message.raw("Text grouping enabled (experimental). Text will span across adjacent claim tiles.").color(new Color(85, 255, 85)));
         } else {
             playerData.sendMessage(Message.raw("Text grouping disabled. Each tile renders text independently.").color(new Color(85, 255, 85)));
+        }
+
+        playerData.sendMessage(Message.raw("Refreshing map...").color(Color.GRAY));
+
+        // Refresh all world maps to apply the change
+        for (String worldName : EasyClaims.WORLDS.keySet()) {
+            plugin.refreshWorldMap(worldName);
         }
     }
 

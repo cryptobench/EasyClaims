@@ -329,11 +329,13 @@ public class PluginConfig {
          * Parse from string (case-insensitive).
          */
         public static MapTextMode fromString(String value) {
-            if (value == null) return AUTO;
+            if (value == null) return null;
+            String normalized = value.trim();
+            if (normalized.isEmpty()) return null;
             try {
-                return valueOf(value.toUpperCase());
+                return valueOf(normalized.toUpperCase());
             } catch (IllegalArgumentException e) {
-                return AUTO;
+                return null;
             }
         }
     }
@@ -377,18 +379,20 @@ public class PluginConfig {
          * Parse from string (case-insensitive).
          */
         public static MapTextScale fromString(String value) {
-            if (value == null) return AUTO;
+            if (value == null) return null;
+            String normalized = value.trim();
+            if (normalized.isEmpty()) return null;
             try {
-                return valueOf(value.toUpperCase());
+                return valueOf(normalized.toUpperCase());
             } catch (IllegalArgumentException e) {
                 // Try parsing as number
                 try {
-                    int num = Integer.parseInt(value);
+                    int num = Integer.parseInt(normalized);
                     for (MapTextScale scale : values()) {
                         if (scale.scale == num) return scale;
                     }
                 } catch (NumberFormatException ignored) {}
-                return AUTO;
+                return null;
             }
         }
     }

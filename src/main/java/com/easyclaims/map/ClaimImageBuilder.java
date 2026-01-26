@@ -50,6 +50,7 @@ public class ClaimImageBuilder {
     @Nonnull
     private final int[] fluidSamples;
     private final MapColor outColor = new MapColor();
+    private int textScale = 1;
     private final UUID[] nearbyOwners = new UUID[4];  // Reusable array for neighboring claim lookups
     @Nullable
     private WorldChunk worldChunk;
@@ -393,6 +394,12 @@ public class ClaimImageBuilder {
      * @param pvpDisabled If true, shows "[Safe]" indicator
      */
     private void drawClaimText(String worldName, int chunkX, int chunkZ, boolean pvpDisabled) {
+        int effectiveScale = EasyClaimsAccess.getMapTextScale(this.image.width, this.image.height);
+        if (effectiveScale <= 0) {
+            return;
+        }
+        this.textScale = Math.max(1, effectiveScale);
+
         // Get text mode based on tile size
         com.easyclaims.config.PluginConfig.MapTextMode textMode = 
             EasyClaimsAccess.getMapTextMode(this.image.width, this.image.height);
@@ -428,15 +435,16 @@ public class ClaimImageBuilder {
      * Used for large tiles (vanilla map style).
      */
     private void drawTextOverflowMode(String displayName, List<String> trustedNames) {
-        int lineHeight = BitmapFont.CHAR_HEIGHT + 2;
+        int scale = Math.max(1, this.textScale);
+        int lineHeight = BitmapFont.getScaledLineHeight(scale);
         int totalLines = 1 + Math.min(trustedNames.size(), 2);
         int startY = (this.image.height - (totalLines * lineHeight)) / 2;
 
         // Draw owner/display name
-        BitmapFont.drawTextCenteredWithOutline(
+        BitmapFont.drawTextCenteredWithOutlineScaled(
             this.image.data, this.image.width, this.image.height,
             displayName, startY,
-            BitmapFont.WHITE, BitmapFont.BLACK
+            BitmapFont.WHITE, BitmapFont.BLACK, scale
         );
 
         // Draw trusted players (yellow)
@@ -445,10 +453,10 @@ public class ClaimImageBuilder {
         for (String trustedName : trustedNames) {
             if (trustedCount >= 2) break;
 
-            BitmapFont.drawTextCenteredWithOutline(
+            BitmapFont.drawTextCenteredWithOutlineScaled(
                 this.image.data, this.image.width, this.image.height,
                 trustedName, trustedY,
-                BitmapFont.YELLOW, BitmapFont.BLACK
+                BitmapFont.YELLOW, BitmapFont.BLACK, scale
             );
 
             trustedY += lineHeight;
@@ -556,13 +564,14 @@ public class ClaimImageBuilder {
         TextFitResult stdV = tryFit(text, availHeight, availWidth, false, true);
         if (stdV.score > best.score) best = stdV;
         
-        // Try micro font horizontal
-        TextFitResult microH = tryFit(text, availWidth, availHeight, true, false);
-        if (microH.score > best.score) best = microH;
-        
-        // Try micro font vertical  
-        TextFitResult microV = tryFit(text, availHeight, availWidth, true, true);
-        if (microV.score > best.score) best = microV;
+        // Only allow micro font when using scale 1
+        if (this.textScale <= 1) {
+            TextFitResult microH = tryFit(text, availWidth, availHeight, true, false);
+            if (microH.score > best.score) best = microH;
+            
+            TextFitResult microV = tryFit(text, availHeight, availWidth, true, true);
+            if (microV.score > best.score) best = microV;
+        }
         
         return best;
     }
@@ -572,10 +581,11 @@ public class ClaimImageBuilder {
      * Returns a fit result with quality score.
      */
     private TextFitResult tryFit(String text, int width, int height, boolean useMicro, boolean vertical) {
-        int charWidth = useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH;
-        int charSpacing = useMicro ? BitmapFont.MICRO_CHAR_SPACING : BitmapFont.CHAR_SPACING;
-        int charHeight = useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT;
-        int lineSpacing = useMicro ? 1 : 2;
+        int scale = useMicro ? 1 : Math.max(1, this.textScale);
+        int charWidth = useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH * scale;
+        int charSpacing = useMicro ? BitmapFont.MICRO_CHAR_SPACING : BitmapFont.CHAR_SPACING * scale;
+        int charHeight = useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT * scale;
+        int lineSpacing = useMicro ? 1 : 2 * scale;
         
         int fullCharWidth = charWidth + charSpacing;
         int lineHeight = charHeight + lineSpacing;
@@ -627,10 +637,11 @@ public class ClaimImageBuilder {
         int margin = 2;
         int availWidth = tileWidth - margin * 2;
         
-        int charWidth = fit.useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH;
-        int charSpacing = fit.useMicro ? BitmapFont.MICRO_CHAR_SPACING : BitmapFont.CHAR_SPACING;
-        int charHeight = fit.useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT;
-        int lineSpacing = fit.useMicro ? 1 : 2;
+        int scale = fit.useMicro ? 1 : Math.max(1, this.textScale);
+        int charWidth = fit.useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH * scale;
+        int charSpacing = fit.useMicro ? BitmapFont.MICRO_CHAR_SPACING : BitmapFont.CHAR_SPACING * scale;
+        int charHeight = fit.useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT * scale;
+        int lineSpacing = fit.useMicro ? 1 : 2 * scale;
         int fullCharWidth = charWidth + charSpacing;
         
         // Calculate line splitting
@@ -649,14 +660,14 @@ public class ClaimImageBuilder {
         
         // Draw each line centered
         for (String line : lines) {
-            int lineWidth = fit.useMicro ? BitmapFont.getMicroTextWidth(line) : BitmapFont.getTextWidth(line, 1);
+            int lineWidth = fit.useMicro ? BitmapFont.getMicroTextWidth(line) : BitmapFont.getTextWidth(line, scale);
             int startX = (tileWidth - lineWidth) / 2;
             
             // Adjust for offset (when part of merged group)
             int localX = startX - offsetX;
             int localY = startY - offsetZ;
             
-            drawTextWithOutlineClipped(line, localX, localY, tileWidth, tileHeight, fit.useMicro);
+            drawTextWithOutlineClipped(line, localX, localY, tileWidth, tileHeight, fit.useMicro, scale);
             startY += charHeight + lineSpacing;
         }
     }
@@ -667,9 +678,10 @@ public class ClaimImageBuilder {
      */
     private void renderVerticalText(String displayName, TextFitResult fit,
                                      int tileWidth, int tileHeight, int offsetX, int offsetZ) {
-        int charWidth = fit.useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH;
-        int charHeight = fit.useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT;
-        int charSpacing = fit.useMicro ? 1 : 2;
+        int scale = fit.useMicro ? 1 : Math.max(1, this.textScale);
+        int charWidth = fit.useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH * scale;
+        int charHeight = fit.useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT * scale;
+        int charSpacing = fit.useMicro ? 1 : 2 * scale;
         
         // For vertical text, each character is stacked
         int totalHeight = displayName.length() * (charHeight + charSpacing) - charSpacing;
@@ -683,7 +695,7 @@ public class ClaimImageBuilder {
         // Draw each character as a separate "line"
         for (int i = 0; i < displayName.length(); i++) {
             String charStr = String.valueOf(displayName.charAt(i));
-            drawTextWithOutlineClipped(charStr, localX, localY, tileWidth, tileHeight, fit.useMicro);
+            drawTextWithOutlineClipped(charStr, localX, localY, tileWidth, tileHeight, fit.useMicro, scale);
             localY += charHeight + charSpacing;
         }
     }
@@ -713,10 +725,11 @@ public class ClaimImageBuilder {
         int margin = 2;
         int availWidth = mergedWidth - margin * 2;
         
-        int charWidth = fit.useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH;
-        int charSpacing = fit.useMicro ? BitmapFont.MICRO_CHAR_SPACING : BitmapFont.CHAR_SPACING;
-        int charHeight = fit.useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT;
-        int lineSpacing = fit.useMicro ? 1 : 2;
+        int scale = fit.useMicro ? 1 : Math.max(1, this.textScale);
+        int charWidth = fit.useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH * scale;
+        int charSpacing = fit.useMicro ? BitmapFont.MICRO_CHAR_SPACING : BitmapFont.CHAR_SPACING * scale;
+        int charHeight = fit.useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT * scale;
+        int lineSpacing = fit.useMicro ? 1 : 2 * scale;
         int fullCharWidth = charWidth + charSpacing;
         
         // Calculate line splitting
@@ -735,14 +748,14 @@ public class ClaimImageBuilder {
         
         // Draw each line centered in merged area
         for (String line : lines) {
-            int lineWidth = fit.useMicro ? BitmapFont.getMicroTextWidth(line) : BitmapFont.getTextWidth(line, 1);
+            int lineWidth = fit.useMicro ? BitmapFont.getMicroTextWidth(line) : BitmapFont.getTextWidth(line, scale);
             int mergedStartX = (mergedWidth - lineWidth) / 2;
             
             // Convert to local tile coordinates
             int localX = mergedStartX - offsetX;
             int localY = mergedStartY - offsetZ;
             
-            drawTextWithOutlineClipped(line, localX, localY, tileWidth, tileHeight, fit.useMicro);
+            drawTextWithOutlineClipped(line, localX, localY, tileWidth, tileHeight, fit.useMicro, scale);
             mergedStartY += charHeight + lineSpacing;
         }
     }
@@ -753,9 +766,10 @@ public class ClaimImageBuilder {
     private void renderMergedVerticalText(String displayName, TextFitResult fit,
                                            int mergedWidth, int mergedHeight,
                                            int offsetX, int offsetZ, int tileWidth, int tileHeight) {
-        int charWidth = fit.useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH;
-        int charHeight = fit.useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT;
-        int charSpacing = fit.useMicro ? 1 : 2;
+        int scale = fit.useMicro ? 1 : Math.max(1, this.textScale);
+        int charWidth = fit.useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH * scale;
+        int charHeight = fit.useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT * scale;
+        int charSpacing = fit.useMicro ? 1 : 2 * scale;
         
         // For vertical text, each character is stacked
         int totalHeight = displayName.length() * (charHeight + charSpacing) - charSpacing;
@@ -768,7 +782,7 @@ public class ClaimImageBuilder {
         
         for (int i = 0; i < displayName.length(); i++) {
             String charStr = String.valueOf(displayName.charAt(i));
-            drawTextWithOutlineClipped(charStr, localX, localY, tileWidth, tileHeight, fit.useMicro);
+            drawTextWithOutlineClipped(charStr, localX, localY, tileWidth, tileHeight, fit.useMicro, scale);
             localY += charHeight + charSpacing;
         }
     }
@@ -783,14 +797,16 @@ public class ClaimImageBuilder {
      * @param tileWidth Width of the tile
      * @param tileHeight Height of the tile
      * @param useMicro Whether to use micro font
+     * @param scale Scale factor for standard font rendering
      */
     private void drawTextWithOutlineClipped(String text, int startX, int startY,
-                                             int tileWidth, int tileHeight, boolean useMicro) {
+                                             int tileWidth, int tileHeight, boolean useMicro, int scale) {
         if (text == null || text.isEmpty()) return;
         
-        int charWidth = useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH;
-        int charHeight = useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT;
-        int charSpacing = useMicro ? BitmapFont.MICRO_CHAR_SPACING : BitmapFont.CHAR_SPACING;
+        int effectiveScale = useMicro ? 1 : Math.max(1, scale);
+        int charWidth = useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH * effectiveScale;
+        int charHeight = useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT * effectiveScale;
+        int charSpacing = useMicro ? BitmapFont.MICRO_CHAR_SPACING : BitmapFont.CHAR_SPACING * effectiveScale;
         int fullCharWidth = charWidth + charSpacing;
         
         // Calculate which characters are potentially visible
@@ -798,25 +814,25 @@ public class ClaimImageBuilder {
         int textHeight = charHeight;
         
         // Early exit if text is completely outside tile (with outline margin)
-        int outlineMargin = 1;
+        int outlineMargin = useMicro ? 1 : Math.max(1, effectiveScale / 2);
         if (startX + textWidth + outlineMargin < 0 || startX - outlineMargin >= tileWidth ||
             startY + textHeight + outlineMargin < 0 || startY - outlineMargin >= tileHeight) {
             return;
         }
         
         // Draw outline first (8 directions)
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -outlineMargin; dx <= outlineMargin; dx++) {
+            for (int dy = -outlineMargin; dy <= outlineMargin; dy++) {
                 if (dx != 0 || dy != 0) {
                     drawTextClipped(text, startX + dx, startY + dy, tileWidth, tileHeight, 
-                                   BitmapFont.BLACK, useMicro, charWidth, charSpacing, charHeight);
+                                   BitmapFont.BLACK, useMicro, charWidth, charSpacing, effectiveScale);
                 }
             }
         }
         
         // Draw main text on top
         drawTextClipped(text, startX, startY, tileWidth, tileHeight, 
-                       BitmapFont.WHITE, useMicro, charWidth, charSpacing, charHeight);
+                       BitmapFont.WHITE, useMicro, charWidth, charSpacing, effectiveScale);
     }
 
     /**
@@ -824,14 +840,14 @@ public class ClaimImageBuilder {
      * Only draws pixels that fall within the tile.
      */
     private void drawTextClipped(String text, int startX, int startY, int tileWidth, int tileHeight,
-                                  int color, boolean useMicro, int charWidth, int charSpacing, int charHeight) {
+                                  int color, boolean useMicro, int charWidth, int charSpacing, int scale) {
         int x = startX;
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
             
             // Skip characters completely outside tile
             if (x + charWidth > 0 && x < tileWidth) {
-                drawCharClipped(c, x, startY, tileWidth, tileHeight, color, useMicro, charWidth, charHeight);
+                drawCharClipped(c, x, startY, tileWidth, tileHeight, color, useMicro, scale);
             }
             
             x += charWidth + charSpacing;
@@ -845,22 +861,49 @@ public class ClaimImageBuilder {
      * Draw a single character clipped to tile boundaries.
      */
     private void drawCharClipped(char c, int x, int y, int tileWidth, int tileHeight,
-                                  int color, boolean useMicro, int charWidth, int charHeight) {
+                                  int color, boolean useMicro, int scale) {
         int[] glyph = useMicro ? getMicroGlyph(c) : getStandardGlyph(c);
         if (glyph == null) return;
         
-        for (int row = 0; row < charHeight; row++) {
-            int py = y + row;
-            if (py < 0 || py >= tileHeight) continue;
-            
-            int rowBits = glyph[row];
-            for (int col = 0; col < charWidth; col++) {
-                int px = x + col;
-                if (px < 0 || px >= tileWidth) continue;
+        int baseCharWidth = useMicro ? BitmapFont.MICRO_CHAR_WIDTH : BitmapFont.CHAR_WIDTH;
+        int baseCharHeight = useMicro ? BitmapFont.MICRO_CHAR_HEIGHT : BitmapFont.CHAR_HEIGHT;
+        int effectiveScale = useMicro ? 1 : Math.max(1, scale);
+
+        if (useMicro || effectiveScale == 1) {
+            for (int row = 0; row < baseCharHeight; row++) {
+                int py = y + row;
+                if (py < 0 || py >= tileHeight) continue;
                 
-                boolean pixelOn = (rowBits & (1 << (charWidth - 1 - col))) != 0;
-                if (pixelOn) {
-                    this.image.data[py * tileWidth + px] = color;
+                int rowBits = glyph[row];
+                for (int col = 0; col < baseCharWidth; col++) {
+                    int px = x + col;
+                    if (px < 0 || px >= tileWidth) continue;
+                    
+                    boolean pixelOn = (rowBits & (1 << (baseCharWidth - 1 - col))) != 0;
+                    if (pixelOn) {
+                        this.image.data[py * tileWidth + px] = color;
+                    }
+                }
+            }
+            return;
+        }
+
+        for (int row = 0; row < baseCharHeight; row++) {
+            int rowBits = glyph[row];
+            for (int col = 0; col < baseCharWidth; col++) {
+                boolean pixelOn = (rowBits & (1 << (baseCharWidth - 1 - col))) != 0;
+                if (!pixelOn) continue;
+                
+                int baseX = x + col * effectiveScale;
+                int baseY = y + row * effectiveScale;
+                for (int sy = 0; sy < effectiveScale; sy++) {
+                    int py = baseY + sy;
+                    if (py < 0 || py >= tileHeight) continue;
+                    for (int sx = 0; sx < effectiveScale; sx++) {
+                        int px = baseX + sx;
+                        if (px < 0 || px >= tileWidth) continue;
+                        this.image.data[py * tileWidth + px] = color;
+                    }
                 }
             }
         }
